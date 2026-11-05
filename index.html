@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Gastos Pro - Cloud Sync (Vite)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js para el gráfico de torta -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 flex flex-col font-sans antialiased">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 py-4 px-6 shadow-md">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 p-2.5 rounded-xl font-bold text-xl shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Mis Gastos Pro <span class="text-xs text-sky-400 font-normal">☁️ Vite + Cloud Sync</span></h1>
+                    <p class="text-xs text-slate-400">Sincronizado automáticamente en la nube (JSONBin)</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Indicador de Estado Cloud -->
+                <span id="syncStatus" class="text-xs bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud text-slate-500"></i> Conectando...
+                </span>
+                <!-- Selector de Mes -->
+                <div class="flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar-days text-emerald-400"></i> Mes:</span>
+                    <input type="month" id="filtroMes" onchange="renderizarTodo()" class="bg-transparent text-slate-200 text-sm outline-none cursor-pointer">
+                </div>
+                <!-- Botón Transferir -->
+                <button onclick="abrirModalTransferencia()" class="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Transferir entre cuentas">
+                    <i class="fa-solid fa-right-left"></i> Transferir
+                </button>
+                <!-- Botón Exportar -->
+                <button onclick="abrirModalExportar()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Exportar Datos">
+                    <i class="fa-solid fa-download text-emerald-400"></i> Exportar
+                </button>
+                <!-- Botón Importar -->
+                <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5 cursor-pointer" title="Importar Respaldo">
+                    <i class="fa-solid fa-upload text-amber-400"></i> Importar
+                    <input type="file" id="inputFile" accept=".json,.csv" onchange="procesarImportacion(event)" class="hidden">
+                </label>
+                <!-- Botón Borrar Todo -->
+                <button onclick="borrarTodaLaApp()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-rose-500/30" title="Borrar toda la app">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Reset App
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Columna Izquierda: Cuentas, Resumen y Gráfico -->
+        <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
+            
+            <!-- Estado Financiero y Cuentas -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Gestión de Cuentas
+                    </h2>
+                    <div class="flex gap-1.5">
+                        <button onclick="abrirModalCuenta()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Nueva Cuenta">
+                            <i class="fa-solid fa-plus"></i> Cuenta
+                        </button>
+                        <button onclick="abrirModalGestionCuentas()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Cuenta">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Total Ingresos Mes</span>
+                        <span id="labelIngresos" class="text-emerald-400 font-bold text-base">$0</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Total Gastos Mes</span>
+                        <span id="labelGastos" class="text-rose-400 font-bold text-base">$0</span>
+                    </div>
+                </div>
+
+                <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <!-- Resumen por Categoría -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3 flex-grow flex flex-col">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-tags text-emerald-400"></i> Resumen por Categoría
+                    </h2>
+                    <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Categoría o Subcategoría">
+                        <i class="fa-solid fa-trash-can"></i> Eliminar Cat/Sub
+                    </button>
+                </div>
+                <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-56 overflow-y-auto pr-1 divide-y divide-slate-800/60">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+            <!-- Gráfico de Torta -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
+                <div class="flex justify-between items-center w-full mb-2">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-emerald-400"></i> Distribución de Gastos
+                    </h2>
+                    <span class="text-[10px] text-slate-400 italic">Haz clic en una sección</span>
+                </div>
+                <div class="w-64 h-64 relative flex items-center justify-center">
+                    <canvas id="graficoTorta"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Columna Derecha: Formulario y Movimientos -->
+        <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
+            
+            <!-- Formulario de Transacción -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-emerald-400"></i> Nueva Transacción
+                    </h2>
+                    <span id="labelMesActivo" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-medium">Mes: Actual</span>
+                </div>
+                
+                <form id="formTransaccion" onsubmit="agregarTransaccion(event)" class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+                            <select id="tipoTransaccion" onchange="actualizarSelectCategorias()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <option value="gasto">Gasto (-)</option>
+                                <option value="ingreso">Ingreso (+)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Cuenta</label>
+                            <select id="cuentaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <!-- Dinámico -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
+                            <input type="date" id="fechaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-medium text-slate-400">Categoría Principal</label>
+                                <button type="button" onclick="abrirModalCategoria('principal')" class="text-[10px] text-emerald-400 hover:underline">+ Nueva Cat.</button>
+                            </div>
+                            <select id="categoriaPrincipal" onchange="actualizarSelectSubcategorias()" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <!-- Dinámico -->
+                            </select>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-medium text-slate-400">Subcategoría</label>
+                                <button type="button" onclick="abrirModalCategoria('sub')" class="text-[10px] text-emerald-400 hover:underline">+ Nueva Sub.</button>
+                            </div>
+                            <select id="subcategoriaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                <!-- Dinámico -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Título / Descripción</label>
+                            <input type="text" id="tituloTransaccion" placeholder="Ej: Supermercado, Sueldo..." required
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Monto (CLP)</label>
+                            <input type="number" id="montoTransaccion" placeholder="0" step="any" min="1" required
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-500/10">
+                        <i class="fa-solid fa-check"></i> Registrar Transacción
+                    </button>
+                </form>
+            </div>
+
+            <!-- Listado de Transacciones -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow flex flex-col">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-3 gap-2">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list text-emerald-400"></i> Movimientos del Mes
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <select id="criterioOrden" onchange="renderizarTodo()" class="bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 outline-none cursor-pointer">
+                            <option value="fecha">Ordenar por: Fecha</option>
+                            <option value="monto">Ordenar por: Gasto (Monto)</option>
+                            <option value="categoria">Ordenar por: Categoría</option>
+                        </select>
+                        <button onclick="borrarMesActual()" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-500/30 flex items-center gap-1.5">
+                            <i class="fa-solid fa-trash-can"></i> Borrar Mes
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto flex-grow max-h-[360px] overflow-y-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">Fecha</th>
+                                <th class="p-2.5">Título</th>
+                                <th class="p-2.5">Categoría > Subcategoría</th>
+                                <th class="p-2.5 text-right">Monto</th>
+                                <th class="p-2.5 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaTransacciones" class="divide-y divide-slate-800/60">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modales estándar -->
+    <div id="modalCuenta" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Agregar Nueva Cuenta</h3>
+            <input type="text" id="nombreNuevaCuenta" placeholder="Ej: Cuenta Banco..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="cerrarModalCuenta()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="guardarNuevaCuenta()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalGestionCuentas" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
+            <select id="selectCuentaEliminar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalGestionCuentas()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarEliminarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalTransferencia" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Transferir o Retirar</h3>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Origen</label>
+                <select id="cuentaOrigen" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Destino</label>
+                <select id="cuentaDestino" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                    <option value="retiro">💵 Retiro externo</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Monto</label>
+                <input type="number" id="montoTransferencia" placeholder="0" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCategoria" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 id="tituloModalCategoria" class="text-base font-semibold text-white">Agregar Categoría</h3>
+            <input type="text" id="nombreNuevaCatInput" placeholder="Nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+            <div class="flex justify-end gap-2">
+                <button onclick="cerrarModalCategoria()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="guardarNuevaCategoriaSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalEliminarCatSub" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Eliminar Categoría / Sub</h3>
+            <select id="delTipoTx" onchange="actualizarSelectsEliminarCat()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                <option value="gasto">Gasto</option>
+                <option value="ingreso">Ingreso</option>
+            </select>
+            <select id="delCatPrincipal" onchange="actualizarSelectsEliminarSub()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            <select id="delSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                <option value="">-- Borrar Categoría Completa --</option>
+            </select>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalEditarGasto" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Editar Transacción</h3>
+            <input type="hidden" id="editUuid">
+            <input type="text" id="editTitulo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+            <input type="number" id="editMonto" step="any" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+            <div class="grid grid-cols-2 gap-2">
+                <select id="editCategoriaPrincipal" onchange="actualizarSelectEditSubcategorias()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+                <select id="editSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalEditar()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="guardarEdicionGasto()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lógica de la Aplicación con Vite .ENV -->
+    <script>
+        // Lectura segura de variables de entorno con Vite
+        const BIN_ID = import.meta.env.VITE_JSONBIN_BIN_ID;
+        const MASTER_KEY = import.meta.env.VITE_JSONBIN_MASTER_KEY;
+
+        let datosApp = {
+            uuid: "app-gastos-local",
+            label: "Mis Gastos Pro",
+            currency: "CLP",
+            cuentas: [{ id: '1', nombre: 'Cuenta Corriente' }, { id: '2', nombre: 'Efectivo' }],
+            categorias: {
+                gasto: {
+                    "Salud": ["Consulta médica", "Medicinas", "Odontólogo", "Hospital", "Farmacia"],
+                    "Comida": ["Restaurante", "Supermercado"],
+                    "Transporte": ["Metro", "Taxi", "Gasolina"],
+                    "Alojamiento": ["Agua", "TV", "Teléfono móvil", "Equipamiento", "condominio", "Servicio Aseo"],
+                    "Estudios": ["Clases", "Libros"],
+                    "Cuidados": ["depilación", "Ropa", "Peluquería"],
+                    "Gastos profesionales": ["Sin devolución"],
+                    "Seguro": ["Profesional"],
+                    "Coche": ["Gasolina"],
+                    "Regalos": ["General"],
+                    "Niños": ["Libros"],
+                    "Gastos": ["Cargos bancarios"]
+                },
+                ingreso: {
+                    "Sueldo": ["Mensual", "Bono"],
+                    "Freelance": ["Proyectos"],
+                    "Inversiones": ["Dividendos", "Intereses"],
+                    "Otros": ["Varios"]
+                }
+            },
+            transacciones: []
+        };
+
+        let chartInstance = null;
+        let tipoCatModalActual = 'principal';
+        let categoriaSeleccionadaGrafico = null;
+        let timeoutSync = null;
+
+        const configCategorias = {
+            "Salud": { icon: "fa-kit-medical", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
+            "Comida": { icon: "fa-utensils", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+            "Transporte": { icon: "fa-car-side", color: "text-sky-400 bg-sky-500/10 border-sky-500/20" },
+            "Alojamiento": { icon: "fa-house", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+            "Estudios": { icon: "fa-graduation-cap", color: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20" },
+            "Cuidados": { icon: "fa-user-nurse", color: "text-pink-400 bg-pink-500/10 border-pink-500/20" },
+            "Gastos profesionales": { icon: "fa-briefcase", color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" },
+            "Seguro": { icon: "fa-shield-halved", color: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
+            "Coche": { icon: "fa-car", color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+            "Regalos": { icon: "fa-gift", color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
+            "Niños": { icon: "fa-child", color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
+            "Gastos": { icon: "fa-file-invoice-dollar", color: "text-red-400 bg-red-500/10 border-red-500/20" },
+            "Sueldo": { icon: "fa-money-bill-wave", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+            "Freelance": { icon: "fa-laptop-code", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+            "Inversiones": { icon: "fa-chart-line", color: "text-green-400 bg-green-500/10 border-green-500/20" },
+            "Otros": { icon: "fa-circle-dollar-to-slot", color: "text-slate-300 bg-slate-500/10 border-slate-500/20" }
+        };
+
+        function obtenerConfigCategoria(cat) {
+            return configCategorias[cat] || { icon: "fa-tag", color: "text-slate-300 bg-slate-500/10 border-slate-500/20" };
+        }
+
+        window.onload = function() {
+            const hoyIso = new Date().toISOString().slice(0, 10);
+            document.getElementById('fechaTransaccion').value = hoyIso;
+            document.getElementById('filtroMes').value = hoyIso.slice(0, 7);
+
+            cargarDesdeNube();
+        };
+
+        async function cargarDesdeNube() {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Sincronizando...`;
+            
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': MASTER_KEY }
+                });
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.record) {
+                        datosApp = json.record;
+                        localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Sincronizado`;
+                    }
+                } else {
+                    throw new Error("No se pudo conectar a la nube");
+                }
+            } catch (err) {
+                console.warn("Usando modo local:", err);
+                const guardado = localStorage.getItem('mis_gastos_app_data');
+                if (guardado) datosApp = JSON.parse(guardado);
+                statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Modo Local`;
+            }
+            renderizarTodo();
+        }
+
+        function guardarYSincronizar() {
+            localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
+            renderizarTodo();
+
+            clearTimeout(timeoutSync);
+            timeoutSync = setTimeout(async () => {
+                const statusEl = document.getElementById('syncStatus');
+                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Guardando...`;
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': MASTER_KEY
+                        },
+                        body: JSON.stringify(datosApp)
+                    });
+                    if (response.ok) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Sincronizado`;
+                    } else {
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-exclamation text-amber-400"></i> Error de Sync`;
+                    }
+                } catch (e) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Local Only`;
+                }
+            }, 1000);
+        }
+
+        // --- GESTIÓN DE CUENTAS ---
+        function abrirModalCuenta() { document.getElementById('modalCuenta').classList.remove('hidden'); document.getElementById('modalCuenta').classList.add('flex'); }
+        function cerrarModalCuenta() { document.getElementById('modalCuenta').classList.remove('flex'); document.getElementById('modalCuenta').classList.add('hidden'); }
+        function guardarNuevaCuenta() {
+            const nombre = document.getElementById('nombreNuevaCuenta').value.trim();
+            if (nombre) {
+                datosApp.cuentas.push({ id: Date.now().toString(), nombre });
+                document.getElementById('nombreNuevaCuenta').value = '';
+                cerrarModalCuenta();
+                guardarYSincronizar();
+            }
+        }
+
+        function abrirModalGestionCuentas() {
+            const select = document.getElementById('selectCuentaEliminar');
+            select.innerHTML = '';
+            datosApp.cuentas.forEach(c => select.appendChild(new Option(c.nombre, c.id)));
+            document.getElementById('modalGestionCuentas').classList.remove('hidden');
+            document.getElementById('modalGestionCuentas').classList.add('flex');
+        }
+        function cerrarModalGestionCuentas() { document.getElementById('modalGestionCuentas').classList.remove('flex'); document.getElementById('modalGestionCuentas').classList.add('hidden'); }
+        function ejecutarEliminarCuenta() {
+            const cuentaId = document.getElementById('selectCuentaEliminar').value;
+            if (datosApp.cuentas.length <= 1) { alert("Debes conservar al menos una cuenta."); return; }
+            if (confirm("¿Estás seguro de eliminar esta cuenta?")) {
+                datosApp.cuentas = datosApp.cuentas.filter(c => c.id !== cuentaId);
+                datosApp.transacciones = datosApp.transacciones.filter(t => t.cuentaId !== cuentaId);
+                cerrarModalGestionCuentas();
+                guardarYSincronizar();
+            }
+        }
+
+        function abrirModalTransferencia() {
+            const origen = document.getElementById('cuentaOrigen');
+            const destino = document.getElementById('cuentaDestino');
+            origen.innerHTML = '';
+            destino.innerHTML = '<option value="retiro">💵 Retiro externo</option>';
+            datosApp.cuentas.forEach(c => {
+                origen.appendChild(new Option(c.nombre, c.id));
+                destino.appendChild(new Option(c.nombre, c.id));
+            });
+            document.getElementById('modalTransferencia').classList.remove('hidden');
+            document.getElementById('modalTransferencia').classList.add('flex');
+        }
+        function cerrarModalTransferencia() { document.getElementById('modalTransferencia').classList.remove('flex'); document.getElementById('modalTransferencia').classList.add('hidden'); }
+
+        function ejecutarTransferencia() {
+            const origenId = document.getElementById('cuentaOrigen').value;
+            const destinoId = document.getElementById('cuentaDestino').value;
+            const monto = parseFloat(document.getElementById('montoTransferencia').value);
+            if (!monto || monto <= 0) return alert("Monto inválido");
+            if (origenId === destinoId) return alert("Cuentas iguales");
+
+            const cOrigen = datosApp.cuentas.find(c => c.id === origenId);
+            const fechaActual = new Date().toISOString().slice(0, 10);
+
+            datosApp.transacciones.push({
+                uuid: 'tx-tr-out-' + Date.now(),
+                date: fechaActual,
+                amount: -monto,
+                category: ['Transferencias', 'Salida'],
+                cuentaId: origenId,
+                title: destinoId === 'retiro' ? `Retiro de ${cOrigen.nombre}` : `Transferencia salida`
+            });
+
+            if (destinoId !== 'retiro') {
+                datosApp.transacciones.push({
+                    uuid: 'tx-tr-in-' + Date.now(),
+                    date: fechaActual,
+                    amount: monto,
+                    category: ['Transferencias', 'Entrada'],
+                    cuentaId: destinoId,
+                    title: `Transferencia entrada`
+                });
+            }
+            document.getElementById('montoTransferencia').value = '';
+            cerrarModalTransferencia();
+            guardarYSincronizar();
+        }
+
+        // --- GESTIÓN DE CATEGORÍAS ---
+        function abrirModalCategoria(tipo) {
+            tipoCatModalActual = tipo;
+            document.getElementById('tituloModalCategoria').innerText = tipo === 'principal' ? 'Nueva Categoría' : 'Nueva Subcategoría';
+            document.getElementById('nombreNuevaCatInput').value = '';
+            document.getElementById('modalCategoria').classList.remove('hidden');
+            document.getElementById('modalCategoria').classList.add('flex');
+        }
+        function cerrarModalCategoria() { document.getElementById('modalCategoria').classList.remove('flex'); document.getElementById('modalCategoria').classList.add('hidden'); }
+        function guardarNuevaCategoriaSub() {
+            const nombre = document.getElementById('nombreNuevaCatInput').value.trim();
+            const tipoTx = document.getElementById('tipoTransaccion').value;
+            if (!nombre) return;
+
+            if (tipoCatModalActual === 'principal') {
+                if (!datosApp.categorias[tipoTx][nombre]) datosApp.categorias[tipoTx][nombre] = ['General'];
+            } else {
+                const catPrin = document.getElementById('categoriaPrincipal').value;
+                if (catPrin && datosApp.categorias[tipoTx][catPrin] && !datosApp.categorias[tipoTx][catPrin].includes(nombre)) {
+                    datosApp.categorias[tipoTx][catPrin].push(nombre);
+                }
+            }
+            cerrarModalCategoria();
+            actualizarSelectCategorias();
+            guardarYSincronizar();
+        }
+
+        function abrirModalEliminarCatSub() {
+            actualizarSelectsEliminarCat();
+            document.getElementById('modalEliminarCatSub').classList.remove('hidden');
+            document.getElementById('modalEliminarCatSub').classList.add('flex');
+        }
+        function cerrarModalEliminarCatSub() { document.getElementById('modalEliminarCatSub').classList.remove('flex'); document.getElementById('modalEliminarCatSub').classList.add('hidden'); }
+        function actualizarSelectsEliminarCat() {
+            const tipo = document.getElementById('delTipoTx').value;
+            const selectPrin = document.getElementById('delCatPrincipal');
+            selectPrin.innerHTML = '';
+            Object.keys(datosApp.categorias[tipo] || {}).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
+            actualizarSelectsEliminarSub();
+        }
+        function actualizarSelectsEliminarSub() {
+            const tipo = document.getElementById('delTipoTx').value;
+            const catPrin = document.getElementById('delCatPrincipal').value;
+            const selectSub = document.getElementById('delSubcategoria');
+            selectSub.innerHTML = '<option value="">-- Borrar Categoría Completa --</option>';
+            (datosApp.categorias[tipo][catPrin] || []).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
+        }
+        function ejecutarEliminarCatSub() {
+            const tipo = document.getElementById('delTipoTx').value;
+            const catPrin = document.getElementById('delCatPrincipal').value;
+            const subCat = document.getElementById('delSubcategoria').value;
+            if (!catPrin) return;
+
+            if (subCat) {
+                datosApp.categorias[tipo][catPrin] = datosApp.categorias[tipo][catPrin].filter(s => s !== subCat);
+            } else {
+                delete datosApp.categorias[tipo][catPrin];
+            }
+            cerrarModalEliminarCatSub();
+            guardarYSincronizar();
+        }
+
+        function actualizarSelectCategorias() {
+            const tipoTx = document.getElementById('tipoTransaccion').value;
+            const selectPrin = document.getElementById('categoriaPrincipal');
+            selectPrin.innerHTML = '';
+            const cats = Object.keys(datosApp.categorias[tipoTx] || {});
+            if (cats.length === 0) datosApp.categorias[tipoTx] = { "General": ["General"] };
+            Object.keys(datosApp.categorias[tipoTx]).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
+            actualizarSelectSubcategorias();
+        }
+
+        function actualizarSelectSubcategorias() {
+            const tipoTx = document.getElementById('tipoTransaccion').value;
+            const catPrin = document.getElementById('categoriaPrincipal').value;
+            const selectSub = document.getElementById('subcategoriaTransaccion');
+            selectSub.innerHTML = '';
+            (datosApp.categorias[tipoTx][catPrin] || ['General']).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
+        }
+
+        function agregarTransaccion(e) {
+            e.preventDefault();
+            const tipo = document.getElementById('tipoTransaccion').value;
+            const cuentaId = document.getElementById('cuentaTransaccion').value;
+            const fechaInput = document.getElementById('fechaTransaccion').value;
+            const catPrin = document.getElementById('categoriaPrincipal').value;
+            const subCat = document.getElementById('subcategoriaTransaccion').value;
+            const titulo = document.getElementById('tituloTransaccion').value.trim();
+            const montoInput = parseFloat(document.getElementById('montoTransaccion').value);
+
+            const amountFinal = tipo === 'ingreso' ? Math.abs(montoInput) : -Math.abs(montoInput);
+
+            datosApp.transacciones.push({
+                uuid: 'tx-' + Date.now(),
+                date: fechaInput || new Date().toISOString().slice(0, 10),
+                amount: amountFinal,
+                category: [catPrin, subCat],
+                cuentaId: cuentaId,
+                title: titulo
+            });
+
+            document.getElementById('tituloTransaccion').value = '';
+            document.getElementById('montoTransaccion').value = '';
+            guardarYSincronizar();
+        }
+
+        function eliminarTransaccion(uuid) {
+            if (confirm("¿Eliminar registro?")) {
+                datosApp.transacciones = datosApp.transacciones.filter(t => (t.uuid || t.id) !== uuid);
+                guardarYSincronizar();
+            }
+        }
+
+        function borrarMesActual() {
+            const mesSeleccionado = document.getElementById('filtroMes').value;
+            if (confirm(`¿Borrar mes ${mesSeleccionado}?`)) {
+                datosApp.transacciones = datosApp.transacciones.filter(t => !normalizarFechaIso(t.date).startsWith(mesSeleccionado));
+                guardarYSincronizar();
+            }
+        }
+
+        function borrarTodaLaApp() {
+            if (confirm("⚠️ ¿Restablecer toda la app?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // --- EDICIÓN ---
+        function abrirModalEditar(uuid) {
+            const tx = datosApp.transacciones.find(t => (t.uuid || t.id) === uuid);
+            if (tx) {
+                document.getElementById('editUuid').value = (tx.uuid || tx.id);
+                document.getElementById('editTitulo').value = tx.title || '';
+                document.getElementById('editMonto').value = Math.abs(tx.amount);
+                const tipoTx = tx.amount > 0 ? 'ingreso' : 'gasto';
+                const selectPrin = document.getElementById('editCategoriaPrincipal');
+                selectPrin.innerHTML = '';
+                Object.keys(datosApp.categorias[tipoTx] || {}).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
+                
+                let curCat = Array.isArray(tx.category) ? tx.category[0] : 'General';
+                selectPrin.value = curCat;
+                actualizarSelectEditSubcategorias();
+                document.getElementById('editSubcategoria').value = Array.isArray(tx.category) ? tx.category[1] : 'General';
+
+                document.getElementById('modalEditarGasto').classList.remove('hidden');
+                document.getElementById('modalEditarGasto').classList.add('flex');
+            }
+        }
+        function actualizarSelectEditSubcategorias() {
+            const selectPrin = document.getElementById('editCategoriaPrincipal').value;
+            const selectSub = document.getElementById('editSubcategoria');
+            selectSub.innerHTML = '';
+            let subs = ['General'];
+            for (let tipo in datosApp.categorias) {
+                if (datosApp.categorias[tipo][selectPrin]) subs = datosApp.categorias[tipo][selectPrin];
+            }
+            subs.forEach(sub => selectSub.appendChild(new Option(sub, sub)));
+        }
+        function cerrarModalEditar() { document.getElementById('modalEditarGasto').classList.remove('flex'); document.getElementById('modalEditarGasto').classList.add('hidden'); }
+        function guardarEdicionGasto() {
+            const uuid = document.getElementById('editUuid').value;
+            const tx = datosApp.transacciones.find(t => (t.uuid || t.id) === uuid);
+            if (tx) {
+                tx.title = document.getElementById('editTitulo').value.trim();
+                const m = parseFloat(document.getElementById('editMonto').value);
+                tx.amount = tx.amount > 0 ? m : -m;
+                tx.category = [document.getElementById('editCategoriaPrincipal').value, document.getElementById('editSubcategoria').value];
+                cerrarModalEditar();
+                guardarYSincronizar();
+            }
+        }
+
+        function normalizarFechaIso(dateStr) {
+            if (!dateStr) return '2026-11-01';
+            if (dateStr.includes('/')) {
+                const p = dateStr.split('/');
+                if (p.length === 3) return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+            }
+            return dateStr;
+        }
+
+        // --- RENDERIZADO Y GRÁFICO ---
+        function renderizarTodo() {
+            actualizarSelectCategorias();
+            const mesSeleccionado = document.getElementById('filtroMes').value;
+            document.getElementById('labelMesActivo').innerText = `Mes: ${mesSeleccionado}`;
+
+            const selectCuenta = document.getElementById('cuentaTransaccion');
+            const listaCuentasDiv = document.getElementById('listaCuentas');
+            selectCuenta.innerHTML = '';
+            listaCuentasDiv.innerHTML = '';
+
+            let saldosCuentas = {};
+            datosApp.cuentas.forEach(c => saldosCuentas[c.id] = 0);
+
+            let ingresosMes = 0, gastosMes = 0, gastosPorCategoriaMes = {};
+
+            datosApp.transacciones.forEach(t => {
+                const cId = t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1');
+                if (saldosCuentas[cId] !== undefined) saldosCuentas[cId] += t.amount;
+                else saldosCuentas[cId] = t.amount;
+
+                let fechaIso = normalizarFechaIso(t.date);
+                if (fechaIso.startsWith(mesSeleccionado)) {
+                    if (t.amount > 0) ingresosMes += t.amount;
+                    if (t.amount < 0) {
+                        const val = Math.abs(t.amount);
+                        gastosMes += val;
+                        let cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
+                        gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
+                    }
+                }
+            });
+
+            datosApp.cuentas.forEach(c => {
+                selectCuenta.appendChild(new Option(c.nombre, c.id));
+                const saldo = saldosCuentas[c.id] || 0;
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center text-xs bg-slate-950 px-3 py-2 rounded-lg border border-slate-800";
+                div.innerHTML = `<span class="font-medium text-slate-300">${c.nombre}</span><span class="font-bold ${saldo >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${saldo.toLocaleString()} CLP</span>`;
+                listaCuentasDiv.appendChild(div);
+            });
+
+            document.getElementById('labelIngresos').innerText = '$' + ingresosMes.toLocaleString() + ' CLP';
+            document.getElementById('labelGastos').innerText = '$' + gastosMes.toLocaleString() + ' CLP';
+
+            // Resumen categorías
+            const listaResumenDiv = document.getElementById('listaResumenCategorias');
+            listaResumenDiv.innerHTML = '';
+            const catOrdenadas = Object.entries(gastosPorCategoriaMes).sort((a, b) => b[1] - a[1]);
+            if (catOrdenadas.length === 0) {
+                listaResumenDiv.innerHTML = '<div class="p-3 text-center text-slate-500 italic text-xs">Sin gastos este mes.</div>';
+            } else {
+                catOrdenadas.forEach(([cat, monto]) => {
+                    const cfg = obtenerConfigCategoria(cat);
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center py-2 px-1 text-xs";
+                    item.innerHTML = `
+                        <span class="font-medium text-slate-200 flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-lg flex items-center justify-center border ${cfg.color}">
+                                <i class="fa-solid ${cfg.icon} text-[11px]"></i>
+                            </span>
+                            ${cat}
+                        </span>
+                        <span class="font-bold text-rose-400">-$${monto.toLocaleString()}</span>
+                    `;
+                    listaResumenDiv.appendChild(item);
+                });
+            }
+
+            // Tabla transacciones
+            let txsMes = datosApp.transacciones.filter(t => normalizarFechaIso(t.date).startsWith(mesSeleccionado));
+            const criterio = document.getElementById('criterioOrden').value;
+            txsMes.sort((a, b) => {
+                if (criterio === 'fecha') return new Date(normalizarFechaIso(b.date)) - new Date(normalizarFechaIso(a.date));
+                if (criterio === 'monto') return Math.abs(b.amount) - Math.abs(a.amount);
+                if (criterio === 'categoria') return (a.category?.[0] || '').localeCompare(b.category?.[0] || '');
+                return 0;
+            });
+
+            const tbody = document.getElementById('tablaTransacciones');
+            tbody.innerHTML = '';
+            if (txsMes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-500 italic text-xs">Sin movimientos.</td></tr>';
+            } else {
+                txsMes.forEach(t => {
+                    const esIngreso = t.amount > 0;
+                    const catStr = Array.isArray(t.category) ? t.category.join(' > ') : (t.category || 'General');
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-800/40 hover:bg-slate-950/40 text-xs";
+                    tr.innerHTML = `
+                        <td class="p-2.5 text-slate-400">${t.date}</td>
+                        <td class="p-2.5 font-medium text-white">${t.title || 'Transacción'}</td>
+                        <td class="p-2.5 text-slate-400"><span class="bg-slate-800 px-2 py-0.5 rounded">${catStr}</span></td>
+                        <td class="p-2.5 text-right font-bold ${esIngreso ? 'text-emerald-400' : 'text-rose-400'}">${esIngreso ? '+' : ''}$${Math.abs(t.amount).toLocaleString()}</td>
+                        <td class="p-2.5 text-center flex justify-center gap-2">
+                            <button onclick="abrirModalEditar('${t.uuid || t.id}')" class="text-slate-400 hover:text-emerald-400"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="eliminarTransaccion('${t.uuid || t.id}')" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            renderizarGraficoTorta(gastosPorCategoriaMes, gastosMes);
+        }
+
+        function renderizarGraficoTorta(gastosCat, totalGastosMes) {
+            const ctx = document.getElementById('graficoTorta').getContext('2d');
+            const labels = Object.keys(gastosCat);
+            const data = Object.values(gastosCat);
+            if (chartInstance) chartInstance.destroy();
+
+            if (labels.length === 0 || totalGastosMes === 0) {
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['Sin gastos'], datasets: [{ data: [1], backgroundColor: ['#1e293b'] }] },
+                    options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+                });
+                return;
+            }
+
+            const colores = ['#10b981', '#38bdf8', '#f43f5e', '#fbbf24', '#a855f7', '#fb7185', '#34d399', '#818cf8', '#f97316'];
+
+            const pluginCentroDona = {
+                id: 'pluginCentroDona',
+                afterDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    let titulo = "Total Gastos", monto = "$" + totalGastosMes.toLocaleString(), pct = "100%";
+                    if (categoriaSeleccionadaGrafico && gastosCat[categoriaSeleccionadaGrafico] !== undefined) {
+                        titulo = categoriaSeleccionadaGrafico;
+                        let val = gastosCat[categoriaSeleccionadaGrafico];
+                        monto = "$" + val.toLocaleString();
+                        pct = ((val / totalGastosMes) * 100).toFixed(1) + '%';
+                    }
+                    const cx = (chart.chartArea.left + chart.chartArea.right) / 2;
+                    const cy = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = '#94a3b8'; ctx.fillText(titulo, cx, cy - 14);
+                    ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText(monto, cx, cy + 1);
+                    ctx.font = '11px sans-serif'; ctx.fillStyle = '#10b981'; ctx.fillText(pct, cx, cy + 16);
+                    ctx.restore();
+                }
+            };
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: colores.slice(0, labels.length), borderWidth: 2, borderColor: '#0f172a' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '62%',
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10, font: { size: 9 } } } },
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            categoriaSeleccionadaGrafico = labels[elements[0].index];
+                            renderizarTodo();
+                        } else {
+                            categoriaSeleccionadaGrafico = null;
+                            renderizarTodo();
+                        }
+                    }
+                },
+                plugins: [pluginCentroDona]
+            });
+        }
+    </script>
+</body>
+</html>
