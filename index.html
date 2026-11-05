@@ -653,7 +653,12 @@
             const catPrin = selectPrin.value;
             selectSub.innerHTML = '';
 
-            const subs = (datosApp.categorias[tipoTx] && datosApp.categorias[tipoTx][catPrin]) ? datosApp.categorias[tipoTx][catPrin] : ['General'];
+            // Aseguramos de forma estricta que 'subs' sea siempre un arreglo
+            let subs = ['General'];
+            if (datosApp.categorias && datosApp.categorias[tipoTx] && Array.isArray(datosApp.categorias[tipoTx][catPrin])) {
+                subs = datosApp.categorias[tipoTx][catPrin];
+            }
+
             subs.forEach(sub => {
                 selectSub.appendChild(new Option(sub, sub));
             });
