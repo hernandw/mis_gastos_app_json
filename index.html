@@ -95,6 +95,7 @@
                     </div>
                 </div>
 
+                <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle en línea:</p>
                 <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
                     <!-- Dinámico -->
                 </div>
@@ -130,7 +131,7 @@
 
         </div>
 
-        <!-- Columna Derecha: Formulario de Registro, Resumen Histórico Mensual y Movimientos -->
+        <!-- Columna Derecha: Formulario, Detalle de Cuenta Seleccionada, Histórico Mensual y Movimientos -->
         <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
             
             <!-- Formulario de Transacción -->
@@ -203,7 +204,34 @@
                 </form>
             </div>
 
-            <!-- NUEVA SECCIÓN: Resumen Histórico por Mes (Ingresos vs Egresos) -->
+            <!-- NUEVA SECCIÓN: Detalle por Cuenta Seleccionada (Fecha, Ingreso, Egreso, Saldo) -->
+            <div id="seccionDetalleCuenta" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl" style="display: none;">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 id="tituloDetalleCuenta" class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Movimientos de Cuenta
+                    </h2>
+                    <button onclick="cerrarDetalleCuenta()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">
+                        <i class="fa-solid fa-xmark"></i> Cerrar Vista
+                    </button>
+                </div>
+                <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
+                            <tr>
+                                <th class="p-2.5">Fecha</th>
+                                <th class="p-2.5 text-right text-emerald-400">Ingreso (+)</th>
+                                <th class="p-2.5 text-right text-rose-400">Egreso (-)</th>
+                                <th class="p-2.5 text-right text-sky-400">Saldo Parcial</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaDetalleCuenta" class="divide-y divide-slate-800/60">
+                            <!-- Dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Resumen Histórico por Mes (Ingresos vs Egresos) -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
@@ -399,6 +427,7 @@
         let tipoCatModalActual = 'principal';
         let categoriaSeleccionadaGrafico = null;
         let timeoutSync = null;
+        let cuentaSeleccionadaId = null; // Variable para almacenar la cuenta activa al hacer clic
 
         const configCategorias = {
             "Salud": { icon: "fa-kit-medical", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
@@ -526,9 +555,20 @@
             if (confirm("¿Estás seguro de eliminar esta cuenta?")) {
                 datosApp.cuentas = datosApp.cuentas.filter(c => c.id !== cuentaId);
                 datosApp.transacciones = datosApp.transacciones.filter(t => t.cuentaId !== cuentaId);
+                if (cuentaSeleccionadaId === cuentaId) cerrarDetalleCuenta();
                 cerrarModalGestionCuentas();
                 guardarYSincronizar();
             }
+        }
+
+        window.seleccionarCuentaDetalle = function(cId) {
+            cuentaSeleccionadaId = cId;
+            renderizarTodo();
+        }
+
+        window.cerrarDetalleCuenta = function() {
+            cuentaSeleccionadaId = null;
+            document.getElementById('seccionDetalleCuenta').style.display = 'none';
         }
 
         window.abrirModalTransferencia = function() {
@@ -832,7 +872,7 @@
             datosApp.cuentas.forEach(c => saldosCuentas[c.id] = 0);
 
             let ingresosMes = 0, gastosMes = 0, gastosPorCategoriaMes = {};
-            let resumenPorMes = {}; // Estructura para acumular ingresos y gastos por mes
+            let resumenPorMes = {};
 
             datosApp.transacciones.forEach(t => {
                 const cId = t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1');
@@ -840,14 +880,12 @@
                 else saldosCuentas[cId] = t.amount;
 
                 let fechaIso = normalizarFechaIso(t.date);
-                let mesStr = fechaIso.slice(0, 7); // 'YYYY-MM'
+                let mesStr = fechaIso.slice(0, 7);
 
-                // Acumulador global para la tabla de histórico mensual
                 if (!resumenPorMes[mesStr]) resumenPorMes[mesStr] = { ingresos: 0, gastos: 0 };
                 if (t.amount > 0) resumenPorMes[mesStr].ingresos += t.amount;
                 if (t.amount < 0) resumenPorMes[mesStr].gastos += Math.abs(t.amount);
 
-                // Filtrado para el mes activo actual seleccionado en la app
                 if (mesStr === mesSeleccionado) {
                     if (t.amount > 0) ingresosMes += t.amount;
                     if (t.amount < 0) {
@@ -859,22 +897,73 @@
                 }
             });
 
+            // Renderizar Cuentas con evento Click para mostrar tabla detallada
             datosApp.cuentas.forEach(c => {
                 selectCuenta.appendChild(new Option(c.nombre, c.id));
                 const saldo = saldosCuentas[c.id] || 0;
+                const esActiva = cuentaSeleccionadaId === c.id;
+                
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center text-xs bg-slate-950 px-3 py-2 rounded-lg border border-slate-800";
-                div.innerHTML = `<span class="font-medium text-slate-300">${c.nombre}</span><span class="font-bold ${saldo >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${saldo.toLocaleString()} CLP</span>`;
+                div.className = `flex justify-between items-center text-xs px-3 py-2.5 rounded-xl border cursor-pointer transition ${esActiva ? 'bg-emerald-950/40 border-emerald-500/50 text-white shadow-md' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}`;
+                div.innerHTML = `
+                    <span class="font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-wallet ${esActiva ? 'text-emerald-400' : 'text-slate-500'}"></i> ${c.nombre}
+                    </span>
+                    <span class="font-bold ${saldo >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${saldo.toLocaleString()} CLP</span>
+                `;
+                div.onclick = () => seleccionarCuentaDetalle(c.id);
                 listaCuentasDiv.appendChild(div);
             });
 
             document.getElementById('labelIngresos').innerText = '$' + ingresosMes.toLocaleString() + ' CLP';
             document.getElementById('labelGastos').innerText = '$' + gastosMes.toLocaleString() + ' CLP';
 
+            // Renderizar Detalle de la Cuenta Seleccionada si hay una activa
+            const seccionDetalle = document.getElementById('seccionDetalleCuenta');
+            const tbodyDetalle = document.getElementById('tablaDetalleCuenta');
+            const tituloDetalle = document.getElementById('tituloDetalleCuenta');
+
+            if (cuentaSeleccionadaId) {
+                const cuentaObj = datosApp.cuentas.find(c => c.id === cuentaSeleccionadaId);
+                const nombreCuenta = cuentaObj ? cuentaObj.nombre : 'Cuenta';
+                tituloDetalle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Detalle de Cuenta: <span class="text-emerald-400">${nombreCuenta}</span>`;
+                
+                seccionDetalle.style.display = 'block';
+                tbodyDetalle.innerHTML = '';
+
+                // Filtrar transacciones de esta cuenta y ordenarlas por fecha ascendente para calcular saldo progresivo
+                let txsCuenta = datosApp.transacciones.filter(t => (t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1')) === cuentaSeleccionadaId);
+                txsCuenta.sort((a, b) => new Date(normalizarFechaIso(a.date)) - new Date(normalizarFechaIso(b.date)));
+
+                if (txsCuenta.length === 0) {
+                    tbodyDetalle.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic text-xs">Sin movimientos en esta cuenta.</td></tr>';
+                } else {
+                    let saldoParcial = 0;
+                    txsCuenta.forEach(t => {
+                        saldoParcial += t.amount;
+                        const esIngreso = t.amount > 0;
+                        const ingresoVal = esIngreso ? `$${t.amount.toLocaleString()}` : '-';
+                        const egresoVal = !esIngreso ? `-$${Math.abs(t.amount).toLocaleString()}` : '-';
+
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b border-slate-800/40 hover:bg-slate-950/40 text-xs";
+                        tr.innerHTML = `
+                            <td class="p-2.5 text-slate-400">${t.date}</td>
+                            <td class="p-2.5 text-right font-bold text-emerald-400">${ingresoVal}</td>
+                            <td class="p-2.5 text-right font-bold text-rose-400">${egresoVal}</td>
+                            <td class="p-2.5 text-right font-bold text-sky-400">$${saldoParcial.toLocaleString()}</td>
+                        `;
+                        tbodyDetalle.appendChild(tr);
+                    });
+                }
+            } else {
+                seccionDetalle.style.display = 'none';
+            }
+
             // Renderizar Tabla de Resumen Histórico Mensual
             const tbodyResumen = document.getElementById('tablaResumenMensual');
             tbodyResumen.innerHTML = '';
-            const mesesOrdenados = Object.keys(resumenPorMes).sort().reverse(); // Meses más recientes primero
+            const mesesOrdenados = Object.keys(resumenPorMes).sort().reverse();
 
             if (mesesOrdenados.length === 0) {
                 tbodyResumen.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500 italic text-xs">Sin registros históricos.</td></tr>';
