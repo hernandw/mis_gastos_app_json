@@ -338,8 +338,8 @@
 
     <!-- Lógica de la Aplicación con Vite .ENV -->
     <script type="module">
-        const BIN_ID = (import.meta.env && import.meta.env.VITE_JSONBIN_BIN_ID) ? import.meta.env.VITE_JSONBIN_BIN_ID : "TU_BIN_ID";
-        const MASTER_KEY = (import.meta.env && import.meta.env.VITE_JSONBIN_MASTER_KEY) ? import.meta.env.VITE_JSONBIN_MASTER_KEY : "TU_MASTER_KEY";
+        const BIN_ID = import.meta.env.VITE_JSONBIN_BIN_ID;
+        const MASTER_KEY = import.meta.env.VITE_JSONBIN_MASTER_KEY;
 
         let datosApp = {
             uuid: "app-gastos-local",
