@@ -25,7 +25,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
+      - name: Build with Environment Secrets
+        env:
+          VITE_JSONBIN_BIN_ID: ${{ secrets.VITE_JSONBIN_BIN_ID }}
+          VITE_JSONBIN_MASTER_KEY: ${{ secrets.VITE_JSONBIN_MASTER_KEY }}
         run: npm run build
 
       - name: Setup Pages
@@ -39,9 +42,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Build
-        env:
-          VITE_JSONBIN_BIN_ID: ${{ secrets.VITE_JSONBIN_BIN_ID }}
-          VITE_JSONBIN_MASTER_KEY: ${{ secrets.VITE_JSONBIN_MASTER_KEY }}
-        run: npm run build
