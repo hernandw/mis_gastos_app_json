@@ -95,7 +95,7 @@
                     </div>
                 </div>
 
-                <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle en línea:</p>
+                <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle, o usa el icono para editarla:</p>
                 <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
                     <!-- Dinámico -->
                 </div>
@@ -204,7 +204,7 @@
                 </form>
             </div>
 
-            <!-- NUEVA SECCIÓN: Detalle por Cuenta Seleccionada (Fecha, Ingreso, Egreso, Saldo) -->
+            <!-- Detalle por Cuenta Seleccionada (Fecha, Ingreso, Egreso, Saldo) -->
             <div id="seccionDetalleCuenta" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl" style="display: none;">
                 <div class="flex justify-between items-center mb-3">
                     <h2 id="tituloDetalleCuenta" class="text-base font-semibold text-white flex items-center gap-2">
@@ -303,6 +303,19 @@
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModalCuenta()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
                 <button onclick="guardarNuevaCuenta()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Cuenta -->
+    <div id="modalEditarCuenta" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Editar Nombre de Cuenta</h3>
+            <input type="hidden" id="editCuentaId">
+            <input type="text" id="editNombreCuentaInput" placeholder="Nuevo nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
+            <div class="flex justify-end gap-2">
+                <button onclick="cerrarModalEditarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="guardarEdicionCuenta()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Actualizar</button>
             </div>
         </div>
     </div>
@@ -427,7 +440,7 @@
         let tipoCatModalActual = 'principal';
         let categoriaSeleccionadaGrafico = null;
         let timeoutSync = null;
-        let cuentaSeleccionadaId = null; // Variable para almacenar la cuenta activa al hacer clic
+        let cuentaSeleccionadaId = null;
 
         const configCategorias = {
             "Salud": { icon: "fa-kit-medical", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
@@ -539,6 +552,30 @@
                 guardarYSincronizar();
             } else {
                 alert("Ingresa un nombre de cuenta válido.");
+            }
+        }
+
+        window.abrirModalEditarCuenta = function(e, cId, cNombre) {
+            e.stopPropagation(); // Evita que se active el click de la tarjeta principal
+            document.getElementById('editCuentaId').value = cId;
+            document.getElementById('editNombreCuentaInput').value = cNombre;
+            document.getElementById('modalEditarCuenta').style.display = 'flex';
+        }
+
+        window.cerrarModalEditarCuenta = function() {
+            document.getElementById('modalEditarCuenta').style.display = 'none';
+        }
+
+        window.guardarEdicionCuenta = function() {
+            const cId = document.getElementById('editCuentaId').value;
+            const nuevoNombre = document.getElementById('editNombreCuentaInput').value.trim();
+            if (!nuevoNombre) return alert("Ingresa un nombre válido.");
+
+            const cuenta = datosApp.cuentas.find(c => c.id === cId);
+            if (cuenta) {
+                cuenta.nombre = nuevoNombre;
+                cerrarModalEditarCuenta();
+                guardarYSincronizar();
             }
         }
 
@@ -897,7 +934,7 @@
                 }
             });
 
-            // Renderizar Cuentas con evento Click para mostrar tabla detallada
+            // Renderizar Cuentas con botón de edición y evento click para detalle
             datosApp.cuentas.forEach(c => {
                 selectCuenta.appendChild(new Option(c.nombre, c.id));
                 const saldo = saldosCuentas[c.id] || 0;
@@ -909,7 +946,12 @@
                     <span class="font-medium flex items-center gap-2">
                         <i class="fa-solid fa-wallet ${esActiva ? 'text-emerald-400' : 'text-slate-500'}"></i> ${c.nombre}
                     </span>
-                    <span class="font-bold ${saldo >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${saldo.toLocaleString()} CLP</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold ${saldo >= 0 ? 'text-emerald-400' : 'text-rose-400'}">$${saldo.toLocaleString()} CLP</span>
+                        <button onclick="abrirModalEditarCuenta(event, '${c.id}', '${c.nombre}')" class="text-slate-400 hover:text-emerald-400 p-1" title="Editar nombre de cuenta">
+                            <i class="fa-solid fa-pen text-[11px]"></i>
+                        </button>
+                    </div>
                 `;
                 div.onclick = () => seleccionarCuentaDetalle(c.id);
                 listaCuentasDiv.appendChild(div);
@@ -918,7 +960,7 @@
             document.getElementById('labelIngresos').innerText = '$' + ingresosMes.toLocaleString() + ' CLP';
             document.getElementById('labelGastos').innerText = '$' + gastosMes.toLocaleString() + ' CLP';
 
-            // Renderizar Detalle de la Cuenta Seleccionada si hay una activa
+            // Renderizar Detalle de la Cuenta Seleccionada
             const seccionDetalle = document.getElementById('seccionDetalleCuenta');
             const tbodyDetalle = document.getElementById('tablaDetalleCuenta');
             const tituloDetalle = document.getElementById('tituloDetalleCuenta');
@@ -931,7 +973,6 @@
                 seccionDetalle.style.display = 'block';
                 tbodyDetalle.innerHTML = '';
 
-                // Filtrar transacciones de esta cuenta y ordenarlas por fecha ascendente para calcular saldo progresivo
                 let txsCuenta = datosApp.transacciones.filter(t => (t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1')) === cuentaSeleccionadaId);
                 txsCuenta.sort((a, b) => new Date(normalizarFechaIso(a.date)) - new Date(normalizarFechaIso(b.date)));
 
