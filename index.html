@@ -32,6 +32,10 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <!-- Indicador de Estado Cloud -->
+                <span id="syncStatus" class="text-xs bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud text-slate-500"></i> Conectando...
+                </span>
                 <!-- Selector de Mes -->
                 <div class="flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
                     <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar-days text-emerald-400"></i> Mes:</span>
@@ -239,7 +243,7 @@
 
     </main>
 
-    <!-- Modales con control explícito style.display para evitar fallos -->
+    <!-- Modales -->
     <div id="modalCuenta" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Agregar Nueva Cuenta</h3>
@@ -334,6 +338,10 @@
 
     <!-- Lógica de la Aplicación -->
     <script>
+        // Lectura segura de variables de entorno con Vite
+        const BIN_ID = (import.meta.env && import.meta.env.VITE_JSONBIN_BIN_ID) ? import.meta.env.VITE_JSONBIN_BIN_ID : "TU_BIN_ID";
+        const MASTER_KEY = (import.meta.env && import.meta.env.VITE_JSONBIN_MASTER_KEY) ? import.meta.env.VITE_JSONBIN_MASTER_KEY : "TU_MASTER_KEY";
+
         let datosApp = {
             uuid: "app-gastos-local",
             label: "Mis Gastos Pro",
@@ -367,6 +375,7 @@
         let chartInstance = null;
         let tipoCatModalActual = 'principal';
         let categoriaSeleccionadaGrafico = null;
+        let timeoutSync = null;
 
         const configCategorias = {
             "Salud": { icon: "fa-kit-medical", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
@@ -396,46 +405,86 @@
             document.getElementById('fechaTransaccion').value = hoyIso;
             document.getElementById('filtroMes').value = hoyIso.slice(0, 7);
 
-            cargarLocalStorage();
-            renderizarTodo();
+            cargarDesdeNube();
         };
 
-        function cargarLocalStorage() {
-            const guardado = localStorage.getItem('mis_gastos_app_data');
-            if (guardado) {
-                try {
-                    datosApp = JSON.parse(guardado);
-                    if (!datosApp.cuentas) datosApp.cuentas = [{ id: '1', nombre: 'Cuenta Corriente' }];
-                    if (!datosApp.categorias) {
-                        datosApp.categorias = {
-                            gasto: { "Comida": ["Restaurante", "Supermercado"], "Salud": ["Consulta médica", "Medicinas", "Odontólogo"] },
-                            ingreso: { "Sueldo": ["Mensual"] }
-                        };
+        async function cargarDesdeNube() {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Sincronizando...`;
+            
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': MASTER_KEY }
+                });
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.record) {
+                        datosApp = json.record;
+                        if (!datosApp.cuentas) datosApp.cuentas = [{ id: '1', nombre: 'Cuenta Corriente' }];
+                        if (!datosApp.categorias) {
+                            datosApp.categorias = {
+                                gasto: { "Comida": ["Restaurante", "Supermercado"], "Salud": ["Consulta médica", "Medicinas", "Odontólogo"] },
+                                ingreso: { "Sueldo": ["Mensual"] }
+                            };
+                        }
+                        if (!datosApp.transacciones) datosApp.transacciones = [];
+                        localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Sincronizado`;
                     }
-                    if (!datosApp.transacciones) datosApp.transacciones = [];
-                } catch(e) { console.error(e); }
+                } else {
+                    throw new Error("No se pudo conectar a la nube");
+                }
+            } catch (err) {
+                console.warn("Usando modo local:", err);
+                const guardado = localStorage.getItem('mis_gastos_app_data');
+                if (guardado) {
+                    try { datosApp = JSON.parse(guardado); } catch(e){}
+                }
+                statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Modo Local`;
             }
-        }
-
-        function guardarLocalStorage() {
-            localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
             renderizarTodo();
         }
 
-        // --- GESTIÓN DE MODALES DE CUENTAS ---
-        function abrirModalCuenta() { 
-            document.getElementById('modalCuenta').style.display = 'flex'; 
+        function guardarYSincronizar() {
+            localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
+            renderizarTodo();
+
+            clearTimeout(timeoutSync);
+            timeoutSync = setTimeout(async () => {
+                const statusEl = document.getElementById('syncStatus');
+                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Guardando...`;
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': MASTER_KEY
+                        },
+                        body: JSON.stringify(datosApp)
+                    });
+                    if (response.ok) {
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Sincronizado`;
+                    } else {
+                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-exclamation text-amber-400"></i> Error de Sync`;
+                    }
+                } catch (e) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Local Only`;
+                }
+            }, 1000);
         }
-        function cerrarModalCuenta() { 
-            document.getElementById('modalCuenta').style.display = 'none'; 
-        }
+
+        // --- GESTIÓN DE CUENTAS ---
+        function abrirModalCuenta() { document.getElementById('modalCuenta').style.display = 'flex'; }
+        function cerrarModalCuenta() { document.getElementById('modalCuenta').style.display = 'none'; }
         function guardarNuevaCuenta() {
             const nombre = document.getElementById('nombreNuevaCuenta').value.trim();
             if (nombre) {
                 datosApp.cuentas.push({ id: Date.now().toString(), nombre });
                 document.getElementById('nombreNuevaCuenta').value = '';
                 cerrarModalCuenta();
-                guardarLocalStorage();
+                guardarYSincronizar();
+            } else {
+                alert("Ingresa un nombre de cuenta válido.");
             }
         }
 
@@ -445,9 +494,7 @@
             datosApp.cuentas.forEach(c => select.appendChild(new Option(c.nombre, c.id)));
             document.getElementById('modalGestionCuentas').style.display = 'flex';
         }
-        function cerrarModalGestionCuentas() { 
-            document.getElementById('modalGestionCuentas').style.display = 'none'; 
-        }
+        function cerrarModalGestionCuentas() { document.getElementById('modalGestionCuentas').style.display = 'none'; }
         function ejecutarEliminarCuenta() {
             const cuentaId = document.getElementById('selectCuentaEliminar').value;
             if (datosApp.cuentas.length <= 1) { alert("Debes conservar al menos una cuenta."); return; }
@@ -455,7 +502,7 @@
                 datosApp.cuentas = datosApp.cuentas.filter(c => c.id !== cuentaId);
                 datosApp.transacciones = datosApp.transacciones.filter(t => t.cuentaId !== cuentaId);
                 cerrarModalGestionCuentas();
-                guardarLocalStorage();
+                guardarYSincronizar();
             }
         }
 
@@ -470,9 +517,7 @@
             });
             document.getElementById('modalTransferencia').style.display = 'flex';
         }
-        function cerrarModalTransferencia() { 
-            document.getElementById('modalTransferencia').style.display = 'none'; 
-        }
+        function cerrarModalTransferencia() { document.getElementById('modalTransferencia').style.display = 'none'; }
 
         function ejecutarTransferencia() {
             const origenId = document.getElementById('cuentaOrigen').value;
@@ -505,19 +550,17 @@
             }
             document.getElementById('montoTransferencia').value = '';
             cerrarModalTransferencia();
-            guardarLocalStorage();
+            guardarYSincronizar();
         }
 
-        // --- GESTIÓN DE MODALES DE CATEGORÍAS ---
+        // --- GESTIÓN DE CATEGORÍAS ---
         function abrirModalCategoria(tipo) {
             tipoCatModalActual = tipo;
             document.getElementById('tituloModalCategoria').innerText = tipo === 'principal' ? 'Nueva Categoría Principal' : 'Nueva Subcategoría';
             document.getElementById('nombreNuevaCatInput').value = '';
             document.getElementById('modalCategoria').style.display = 'flex';
         }
-        function cerrarModalCategoria() { 
-            document.getElementById('modalCategoria').style.display = 'none'; 
-        }
+        function cerrarModalCategoria() { document.getElementById('modalCategoria').style.display = 'none'; }
         function guardarNuevaCategoriaSub() {
             const nombre = document.getElementById('nombreNuevaCatInput').value.trim();
             const tipoTx = document.getElementById('tipoTransaccion').value;
@@ -537,16 +580,14 @@
             }
             cerrarModalCategoria();
             actualizarSelectCategorias();
-            guardarLocalStorage();
+            guardarYSincronizar();
         }
 
         function abrirModalEliminarCatSub() {
             actualizarSelectsEliminarCat();
             document.getElementById('modalEliminarCatSub').style.display = 'flex';
         }
-        function cerrarModalEliminarCatSub() { 
-            document.getElementById('modalEliminarCatSub').style.display = 'none'; 
-        }
+        function cerrarModalEliminarCatSub() { document.getElementById('modalEliminarCatSub').style.display = 'none'; }
         function actualizarSelectsEliminarCat() {
             const tipo = document.getElementById('delTipoTx').value;
             const selectPrin = document.getElementById('delCatPrincipal');
@@ -572,13 +613,13 @@
                 if (confirm(`¿Eliminar subcategoría "${subCat}"?`)) {
                     datosApp.categorias[tipo][catPrin] = datosApp.categorias[tipo][catPrin].filter(s => s !== subCat);
                     cerrarModalEliminarCatSub();
-                    guardarLocalStorage();
+                    guardarYSincronizar();
                 }
             } else {
                 if (confirm(`⚠️ ¿Eliminar categoría "${catPrin}" completa?`)) {
                     delete datosApp.categorias[tipo][catPrin];
                     cerrarModalEliminarCatSub();
-                    guardarLocalStorage();
+                    guardarYSincronizar();
                 }
             }
         }
@@ -640,13 +681,13 @@
 
             document.getElementById('tituloTransaccion').value = '';
             document.getElementById('montoTransaccion').value = '';
-            guardarLocalStorage();
+            guardarYSincronizar();
         }
 
         function eliminarTransaccion(uuid) {
             if (confirm("¿Eliminar registro?")) {
                 datosApp.transacciones = datosApp.transacciones.filter(t => (t.uuid || t.id) !== uuid);
-                guardarLocalStorage();
+                guardarYSincronizar();
             }
         }
 
@@ -654,7 +695,7 @@
             const mesSeleccionado = document.getElementById('filtroMes').value;
             if (confirm(`¿Borrar mes ${mesSeleccionado}?`)) {
                 datosApp.transacciones = datosApp.transacciones.filter(t => !normalizarFechaIso(t.date).startsWith(mesSeleccionado));
-                guardarLocalStorage();
+                guardarYSincronizar();
             }
         }
 
@@ -695,9 +736,7 @@
             }
             subs.forEach(sub => selectSub.appendChild(new Option(sub, sub)));
         }
-        function cerrarModalEditar() { 
-            document.getElementById('modalEditarGasto').style.display = 'none'; 
-        }
+        function cerrarModalEditar() { document.getElementById('modalEditarGasto').style.display = 'none'; }
         function guardarEdicionGasto() {
             const uuid = document.getElementById('editUuid').value;
             const tx = datosApp.transacciones.find(t => (t.uuid || t.id) === uuid);
@@ -707,7 +746,7 @@
                 tx.amount = tx.amount > 0 ? m : -m;
                 tx.category = [document.getElementById('editCategoriaPrincipal').value, document.getElementById('editSubcategoria').value];
                 cerrarModalEditar();
-                guardarLocalStorage();
+                guardarYSincronizar();
             }
         }
 
