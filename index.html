@@ -336,9 +336,8 @@
         </div>
     </div>
 
-    <!-- Lógica de la Aplicación -->
-    <script>
-        // Lectura segura de variables de entorno con Vite
+    <!-- Lógica de la Aplicación con Vite .ENV -->
+    <script type="module">
         const BIN_ID = (import.meta.env && import.meta.env.VITE_JSONBIN_BIN_ID) ? import.meta.env.VITE_JSONBIN_BIN_ID : "TU_BIN_ID";
         const MASTER_KEY = (import.meta.env && import.meta.env.VITE_JSONBIN_MASTER_KEY) ? import.meta.env.VITE_JSONBIN_MASTER_KEY : "TU_MASTER_KEY";
 
@@ -402,15 +401,17 @@
 
         window.onload = function() {
             const hoyIso = new Date().toISOString().slice(0, 10);
-            document.getElementById('fechaTransaccion').value = hoyIso;
-            document.getElementById('filtroMes').value = hoyIso.slice(0, 7);
+            const inputFecha = document.getElementById('fechaTransaccion');
+            const filtroMes = document.getElementById('filtroMes');
+            if (inputFecha) inputFecha.value = hoyIso;
+            if (filtroMes) filtroMes.value = hoyIso.slice(0, 7);
 
             cargarDesdeNube();
         };
 
         async function cargarDesdeNube() {
             const statusEl = document.getElementById('syncStatus');
-            statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Sincronizando...`;
+            if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Sincronizando...`;
             
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
@@ -429,7 +430,7 @@
                         }
                         if (!datosApp.transacciones) datosApp.transacciones = [];
                         localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
-                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Sincronizado`;
+                        if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-down text-emerald-400"></i> Sincronizado`;
                     }
                 } else {
                     throw new Error("No se pudo conectar a la nube");
@@ -440,7 +441,7 @@
                 if (guardado) {
                     try { datosApp = JSON.parse(guardado); } catch(e){}
                 }
-                statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Modo Local`;
+                if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Modo Local`;
             }
             renderizarTodo();
         }
@@ -452,7 +453,7 @@
             clearTimeout(timeoutSync);
             timeoutSync = setTimeout(async () => {
                 const statusEl = document.getElementById('syncStatus');
-                statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Guardando...`;
+                if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> Guardando...`;
                 try {
                     const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                         method: 'PUT',
@@ -463,20 +464,20 @@
                         body: JSON.stringify(datosApp)
                     });
                     if (response.ok) {
-                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Sincronizado`;
+                        if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> Sincronizado`;
                     } else {
-                        statusEl.innerHTML = `<i class="fa-solid fa-cloud-exclamation text-amber-400"></i> Error de Sync`;
+                        if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-cloud-exclamation text-amber-400"></i> Error de Sync`;
                     }
                 } catch (e) {
-                    statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Local Only`;
+                    if (statusEl) statusEl.innerHTML = `<i class="fa-solid fa-cloud-slash text-rose-400"></i> Local Only`;
                 }
             }, 1000);
         }
 
         // --- GESTIÓN DE CUENTAS ---
-        function abrirModalCuenta() { document.getElementById('modalCuenta').style.display = 'flex'; }
-        function cerrarModalCuenta() { document.getElementById('modalCuenta').style.display = 'none'; }
-        function guardarNuevaCuenta() {
+        window.abrirModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'flex'; }
+        window.cerrarModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'none'; }
+        window.guardarNuevaCuenta = function() {
             const nombre = document.getElementById('nombreNuevaCuenta').value.trim();
             if (nombre) {
                 datosApp.cuentas.push({ id: Date.now().toString(), nombre });
@@ -488,14 +489,14 @@
             }
         }
 
-        function abrirModalGestionCuentas() {
+        window.abrirModalGestionCuentas = function() {
             const select = document.getElementById('selectCuentaEliminar');
             select.innerHTML = '';
             datosApp.cuentas.forEach(c => select.appendChild(new Option(c.nombre, c.id)));
             document.getElementById('modalGestionCuentas').style.display = 'flex';
         }
-        function cerrarModalGestionCuentas() { document.getElementById('modalGestionCuentas').style.display = 'none'; }
-        function ejecutarEliminarCuenta() {
+        window.cerrarModalGestionCuentas = function() { document.getElementById('modalGestionCuentas').style.display = 'none'; }
+        window.ejecutarEliminarCuenta = function() {
             const cuentaId = document.getElementById('selectCuentaEliminar').value;
             if (datosApp.cuentas.length <= 1) { alert("Debes conservar al menos una cuenta."); return; }
             if (confirm("¿Estás seguro de eliminar esta cuenta?")) {
@@ -506,7 +507,7 @@
             }
         }
 
-        function abrirModalTransferencia() {
+        window.abrirModalTransferencia = function() {
             const origen = document.getElementById('cuentaOrigen');
             const destino = document.getElementById('cuentaDestino');
             origen.innerHTML = '';
@@ -517,9 +518,9 @@
             });
             document.getElementById('modalTransferencia').style.display = 'flex';
         }
-        function cerrarModalTransferencia() { document.getElementById('modalTransferencia').style.display = 'none'; }
+        window.cerrarModalTransferencia = function() { document.getElementById('modalTransferencia').style.display = 'none'; }
 
-        function ejecutarTransferencia() {
+        window.ejecutarTransferencia = function() {
             const origenId = document.getElementById('cuentaOrigen').value;
             const destinoId = document.getElementById('cuentaDestino').value;
             const monto = parseFloat(document.getElementById('montoTransferencia').value);
@@ -554,14 +555,14 @@
         }
 
         // --- GESTIÓN DE CATEGORÍAS ---
-        function abrirModalCategoria(tipo) {
+        window.abrirModalCategoria = function(tipo) {
             tipoCatModalActual = tipo;
             document.getElementById('tituloModalCategoria').innerText = tipo === 'principal' ? 'Nueva Categoría Principal' : 'Nueva Subcategoría';
             document.getElementById('nombreNuevaCatInput').value = '';
             document.getElementById('modalCategoria').style.display = 'flex';
         }
-        function cerrarModalCategoria() { document.getElementById('modalCategoria').style.display = 'none'; }
-        function guardarNuevaCategoriaSub() {
+        window.cerrarModalCategoria = function() { document.getElementById('modalCategoria').style.display = 'none'; }
+        window.guardarNuevaCategoriaSub = function() {
             const nombre = document.getElementById('nombreNuevaCatInput').value.trim();
             const tipoTx = document.getElementById('tipoTransaccion').value;
             if (!nombre) return;
@@ -583,12 +584,12 @@
             guardarYSincronizar();
         }
 
-        function abrirModalEliminarCatSub() {
+        window.abrirModalEliminarCatSub = function() {
             actualizarSelectsEliminarCat();
             document.getElementById('modalEliminarCatSub').style.display = 'flex';
         }
-        function cerrarModalEliminarCatSub() { document.getElementById('modalEliminarCatSub').style.display = 'none'; }
-        function actualizarSelectsEliminarCat() {
+        window.cerrarModalEliminarCatSub = function() { document.getElementById('modalEliminarCatSub').style.display = 'none'; }
+        window.actualizarSelectsEliminarCat = function() {
             const tipo = document.getElementById('delTipoTx').value;
             const selectPrin = document.getElementById('delCatPrincipal');
             selectPrin.innerHTML = '';
@@ -596,14 +597,14 @@
             Object.keys(cats).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
             actualizarSelectsEliminarSub();
         }
-        function actualizarSelectsEliminarSub() {
+        window.actualizarSelectsEliminarSub = function() {
             const tipo = document.getElementById('delTipoTx').value;
             const catPrin = document.getElementById('delCatPrincipal').value;
             const selectSub = document.getElementById('delSubcategoria');
             selectSub.innerHTML = '<option value="">-- Borrar Categoría Completa --</option>';
             (datosApp.categorias[tipo][catPrin] || []).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
         }
-        function ejecutarEliminarCatSub() {
+        window.ejecutarEliminarCatSub = function() {
             const tipo = document.getElementById('delTipoTx').value;
             const catPrin = document.getElementById('delCatPrincipal').value;
             const subCat = document.getElementById('delSubcategoria').value;
@@ -624,7 +625,7 @@
             }
         }
 
-        function actualizarSelectCategorias() {
+        window.actualizarSelectCategorias = function() {
             const tipoTx = document.getElementById('tipoTransaccion').value;
             const selectPrin = document.getElementById('categoriaPrincipal');
             if (!selectPrin) return;
@@ -643,7 +644,7 @@
             actualizarSelectSubcategorias();
         }
 
-        function actualizarSelectSubcategorias() {
+        window.actualizarSelectSubcategorias = function() {
             const tipoTx = document.getElementById('tipoTransaccion').value;
             const selectPrin = document.getElementById('categoriaPrincipal');
             const selectSub = document.getElementById('subcategoriaTransaccion');
@@ -658,7 +659,7 @@
             });
         }
 
-        function agregarTransaccion(e) {
+        window.agregarTransaccion = function(e) {
             e.preventDefault();
             const tipo = document.getElementById('tipoTransaccion').value;
             const cuentaId = document.getElementById('cuentaTransaccion').value;
@@ -684,14 +685,14 @@
             guardarYSincronizar();
         }
 
-        function eliminarTransaccion(uuid) {
+        window.eliminarTransaccion = function(uuid) {
             if (confirm("¿Eliminar registro?")) {
                 datosApp.transacciones = datosApp.transacciones.filter(t => (t.uuid || t.id) !== uuid);
                 guardarYSincronizar();
             }
         }
 
-        function borrarMesActual() {
+        window.borrarMesActual = function() {
             const mesSeleccionado = document.getElementById('filtroMes').value;
             if (confirm(`¿Borrar mes ${mesSeleccionado}?`)) {
                 datosApp.transacciones = datosApp.transacciones.filter(t => !normalizarFechaIso(t.date).startsWith(mesSeleccionado));
@@ -699,7 +700,7 @@
             }
         }
 
-        function borrarTodaLaApp() {
+        window.borrarTodaLaApp = function() {
             if (confirm("⚠️ ¿Restablecer toda la app?")) {
                 localStorage.removeItem('mis_gastos_app_data');
                 location.reload();
@@ -707,7 +708,7 @@
         }
 
         // --- EDICIÓN ---
-        function abrirModalEditar(uuid) {
+        window.abrirModalEditar = function(uuid) {
             const tx = datosApp.transacciones.find(t => (t.uuid || t.id) === uuid);
             if (tx) {
                 document.getElementById('editUuid').value = (tx.uuid || tx.id);
@@ -726,7 +727,7 @@
                 document.getElementById('modalEditarGasto').style.display = 'flex';
             }
         }
-        function actualizarSelectEditSubcategorias() {
+        window.actualizarSelectEditSubcategorias = function() {
             const selectPrin = document.getElementById('editCategoriaPrincipal').value;
             const selectSub = document.getElementById('editSubcategoria');
             selectSub.innerHTML = '';
@@ -736,8 +737,8 @@
             }
             subs.forEach(sub => selectSub.appendChild(new Option(sub, sub)));
         }
-        function cerrarModalEditar() { document.getElementById('modalEditarGasto').style.display = 'none'; }
-        function guardarEdicionGasto() {
+        window.cerrarModalEditar = function() { document.getElementById('modalEditarGasto').style.display = 'none'; }
+        window.guardarEdicionGasto = function() {
             const uuid = document.getElementById('editUuid').value;
             const tx = datosApp.transacciones.find(t => (t.uuid || t.id) === uuid);
             if (tx) {
@@ -763,10 +764,13 @@
         function renderizarTodo() {
             actualizarSelectCategorias();
             const mesSeleccionado = document.getElementById('filtroMes').value;
-            document.getElementById('labelMesActivo').innerText = `Mes: ${mesSeleccionado}`;
+            const labelMesActivo = document.getElementById('labelMesActivo');
+            if (labelMesActivo) labelMesActivo.innerText = `Mes: ${mesSeleccionado}`;
 
             const selectCuenta = document.getElementById('cuentaTransaccion');
             const listaCuentasDiv = document.getElementById('listaCuentas');
+            if (!selectCuenta || !listaCuentasDiv) return;
+
             selectCuenta.innerHTML = '';
             listaCuentasDiv.innerHTML = '';
 
@@ -866,7 +870,9 @@
         }
 
         function renderizarGraficoTorta(gastosCat, totalGastosMes) {
-            const ctx = document.getElementById('graficoTorta').getContext('2d');
+            const canvasEl = document.getElementById('graficoTorta');
+            if (!canvasEl) return;
+            const ctx = canvasEl.getContext('2d');
             const labels = Object.keys(gastosCat);
             const data = Object.values(gastosCat);
             if (chartInstance) chartInstance.destroy();
