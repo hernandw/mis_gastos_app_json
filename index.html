@@ -107,9 +107,14 @@
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
                         <i class="fa-solid fa-tags text-emerald-400"></i> Resumen por Categoría
                     </h2>
-                    <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Categoría o Subcategoría">
-                        <i class="fa-solid fa-trash-can"></i> Eliminar Cat/Sub
-                    </button>
+                    <div class="flex gap-1.5">
+                        <button onclick="abrirModalEditarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Editar Categoría o Subcategoría">
+                            <i class="fa-solid fa-pen"></i> Editar
+                        </button>
+                        <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Categoría o Subcategoría">
+                            <i class="fa-solid fa-trash-can"></i> Eliminar
+                        </button>
+                    </div>
                 </div>
                 <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-56 overflow-y-auto pr-1 divide-y divide-slate-800/60">
                     <!-- Dinámico -->
@@ -204,7 +209,7 @@
                 </form>
             </div>
 
-            <!-- Detalle por Cuenta Seleccionada (Fecha, Ingreso, Egreso, Saldo) -->
+            <!-- Detalle por Cuenta Seleccionada -->
             <div id="seccionDetalleCuenta" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl" style="display: none;">
                 <div class="flex justify-between items-center mb-3">
                     <h2 id="tituloDetalleCuenta" class="text-base font-semibold text-white flex items-center gap-2">
@@ -231,7 +236,7 @@
                 </div>
             </div>
 
-            <!-- Resumen Histórico por Mes (Ingresos vs Egresos) -->
+            <!-- Resumen Histórico por Mes -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
@@ -320,7 +325,39 @@
         </div>
     </div>
 
-    <!-- Modal Editar Transacción (Con selector de cuenta incluido) -->
+    <!-- Modal Editar Categoría o Subcategoría -->
+    <div id="modalEditarCatSub" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Editar Categoría o Subcategoría</h3>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Tipo</label>
+                <select id="editTipoTx" onchange="actualizarSelectsEditarCat()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                    <option value="gasto">Gasto</option>
+                    <option value="ingreso">Ingreso</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Categoría Principal a Editar / O padre</label>
+                <select id="editCatPrincipal" onchange="actualizarSelectsEditarSub()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Subcategoría (Opcional, dejar vacío si editarás la principal)</label>
+                <select id="editSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                    <option value="">-- Editar Categoría Principal --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Nuevo Nombre</label>
+                <input type="text" id="nuevoNombreCatInput" placeholder="Nuevo nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalEditarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarEdicionCatSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Transacción -->
     <div id="modalEditarGasto" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Editar Transacción</h3>
@@ -344,7 +381,7 @@
                 </div>
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Subcategoría</label>
-                    <select id="editSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+                    <select id="editSubcategoriaTx" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
                 </div>
             </div>
             <div class="flex justify-end gap-2 pt-2">
@@ -702,6 +739,74 @@
             guardarYSincronizar();
         }
 
+        // --- EDICIÓN DE CATEGORÍAS Y SUBCATEGORÍAS ---
+        window.abrirModalEditarCatSub = function() {
+            actualizarSelectsEditarCat();
+            document.getElementById('nuevoNombreCatInput').value = '';
+            document.getElementById('modalEditarCatSub').style.display = 'flex';
+        }
+        window.cerrarModalEditarCatSub = function() { document.getElementById('modalEditarCatSub').style.display = 'none'; }
+
+        window.actualizarSelectsEditarCat = function() {
+            const tipo = document.getElementById('editTipoTx').value;
+            const selectPrin = document.getElementById('editCatPrincipal');
+            selectPrin.innerHTML = '';
+            const cats = datosApp.categorias[tipo] || {};
+            Object.keys(cats).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
+            actualizarSelectsEditarSub();
+        }
+
+        window.actualizarSelectsEditarSub = function() {
+            const tipo = document.getElementById('editTipoTx').value;
+            const catPrin = document.getElementById('editCatPrincipal').value;
+            const selectSub = document.getElementById('editSubcategoria');
+            selectSub.innerHTML = '<option value="">-- Editar Categoría Principal --</option>';
+            (datosApp.categorias[tipo][catPrin] || []).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
+        }
+
+        window.ejecutarEdicionCatSub = function() {
+            const tipo = document.getElementById('editTipoTx').value;
+            const catPrin = document.getElementById('editCatPrincipal').value;
+            const subCat = document.getElementById('editSubcategoria').value;
+            const nuevoNombre = document.getElementById('nuevoNombreCatInput').value.trim();
+
+            if (!catPrin || !nuevoNombre) return alert("Completa todos los campos obligatorios.");
+
+            if (!subCat) {
+                // Editando Categoría Principal
+                if (datosApp.categorias[tipo][nuevoNombre]) return alert("Ya existe una categoría con ese nombre.");
+                datosApp.categorias[tipo][nuevoNombre] = datosApp.categorias[tipo][catPrin];
+                delete datosApp.categorias[tipo][catPrin];
+
+                // Actualizar transacciones asociadas
+                datosApp.transacciones.forEach(t => {
+                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
+                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin) {
+                        t.category[0] = nuevoNombre;
+                    }
+                });
+            } else {
+                // Editando Subcategoría
+                const subs = datosApp.categorias[tipo][catPrin];
+                if (subs.includes(nuevoNombre)) return alert("Ya existe una subcategoría con ese nombre.");
+                const idx = subs.indexOf(subCat);
+                if (idx !== -1) {
+                    subs[idx] = nuevoNombre;
+                }
+
+                // Actualizar transacciones asociadas
+                datosApp.transacciones.forEach(t => {
+                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
+                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin && t.category[1] === subCat) {
+                        t.category[1] = nuevoNombre;
+                    }
+                });
+            }
+
+            cerrarModalEditarCatSub();
+            guardarYSincronizar();
+        }
+
         window.abrirModalEliminarCatSub = function() {
             actualizarSelectsEliminarCat();
             document.getElementById('modalEliminarCatSub').style.display = 'flex';
@@ -863,7 +968,6 @@
                 document.getElementById('editTitulo').value = tx.title || '';
                 document.getElementById('editMonto').value = Math.abs(tx.amount);
                 
-                // Poblar select de cuentas en el modal de edición
                 const selectEditCuenta = document.getElementById('editCuentaTransaccion');
                 selectEditCuenta.innerHTML = '';
                 datosApp.cuentas.forEach(c => {
@@ -879,15 +983,16 @@
                 let curCat = Array.isArray(tx.category) ? tx.category[0] : 'General';
                 selectPrin.value = curCat;
                 actualizarSelectEditSubcategorias();
-                document.getElementById('editSubcategoria').value = Array.isArray(tx.category) ? tx.category[1] : 'General';
+                document.getElementById('editSubcategoriaTx').value = Array.isArray(tx.category) ? tx.category[1] : 'General';
 
                 document.getElementById('modalEditarGasto').style.display = 'flex';
             }
         }
 
         window.actualizarSelectEditSubcategorias = function() {
+            const tipoTx = 'gasto'; // Se puede ajustar según la lógica general o inferirse del monto
             const selectPrin = document.getElementById('editCategoriaPrincipal').value;
-            const selectSub = document.getElementById('editSubcategoria');
+            const selectSub = document.getElementById('editSubcategoriaTx');
             selectSub.innerHTML = '';
             let subs = ['General'];
             for (let tipo in datosApp.categorias) {
@@ -905,8 +1010,8 @@
                 tx.title = document.getElementById('editTitulo').value.trim();
                 const m = parseFloat(document.getElementById('editMonto').value);
                 tx.amount = tx.amount > 0 ? m : -m;
-                tx.cuentaId = document.getElementById('editCuentaTransaccion').value; // Actualizar cuenta
-                tx.category = [document.getElementById('editCategoriaPrincipal').value, document.getElementById('editSubcategoria').value];
+                tx.cuentaId = document.getElementById('editCuentaTransaccion').value;
+                tx.category = [document.getElementById('editCategoriaPrincipal').value, document.getElementById('editSubcategoriaTx').value];
                 cerrarModalEditar();
                 guardarYSincronizar();
             }
