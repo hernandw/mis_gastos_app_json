@@ -101,18 +101,18 @@
                 </div>
             </div>
 
-            <!-- Lista de categorías con iconos coloridos y sus gastos -->
+            <!-- Lista de categorías con botones de gestión visibles -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3 flex-grow flex flex-col">
                 <div class="flex justify-between items-center">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
                         <i class="fa-solid fa-tags text-emerald-400"></i> Resumen por Categoría
                     </h2>
                     <div class="flex gap-1.5">
-                        <button onclick="abrirModalEditarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Editar Categoría o Subcategoría">
-                            <i class="fa-solid fa-pen"></i> Editar
+                        <button onclick="abrirModalEditarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1" title="Editar Categoría o Subcategoría">
+                            <i class="fa-solid fa-pen text-[10px]"></i> Editar
                         </button>
-                        <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Categoría o Subcategoría">
-                            <i class="fa-solid fa-trash-can"></i> Eliminar
+                        <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1" title="Eliminar Categoría o Subcategoría">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i> Eliminar
                         </button>
                     </div>
                 </div>
@@ -121,7 +121,7 @@
                 </div>
             </div>
 
-            <!-- Gráfico de Torta con Info Central Integrada por Plugin -->
+            <!-- Gráfico de Torta -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
                 <div class="flex justify-between items-center w-full mb-2">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
@@ -136,7 +136,7 @@
 
         </div>
 
-        <!-- Columna Derecha: Formulario, Detalle de Cuenta Seleccionada, Histórico Mensual y Movimientos -->
+        <!-- Columna Derecha -->
         <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
             
             <!-- Formulario de Transacción -->
@@ -337,11 +337,11 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Categoría Principal a Editar / O padre</label>
+                <label class="block text-xs text-slate-400 mb-1">Categoría Principal</label>
                 <select id="editCatPrincipal" onchange="actualizarSelectsEditarSub()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
             </div>
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Subcategoría (Opcional, dejar vacío si editarás la principal)</label>
+                <label class="block text-xs text-slate-400 mb-1">Subcategoría (Opcional)</label>
                 <select id="editSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
                     <option value="">-- Editar Categoría Principal --</option>
                 </select>
@@ -391,52 +391,7 @@
         </div>
     </div>
 
-    <div id="modalGestionCuentas" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
-            <select id="selectCuentaEliminar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="cerrarModalGestionCuentas()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="ejecutarEliminarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalTransferencia" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-semibold text-white">Transferir o Retirar</h3>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Origen</label>
-                <select id="cuentaOrigen" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Destino</label>
-                <select id="cuentaDestino" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
-                    <option value="retiro">💵 Retiro externo</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Monto</label>
-                <input type="number" id="montoTransferencia" placeholder="0" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="cerrarModalTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="ejecutarTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Transferir</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalCategoria" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 id="tituloModalCategoria" class="text-base font-semibold text-white">Agregar Categoría</h3>
-            <input type="text" id="nombreNuevaCatInput" placeholder="Nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
-            <div class="flex justify-end gap-2">
-                <button onclick="cerrarModalCategoria()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="guardarNuevaCategoriaSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Modal Eliminar Categoría / Sub -->
     <div id="modalEliminarCatSub" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Eliminar Categoría / Sub</h3>
@@ -773,12 +728,10 @@
             if (!catPrin || !nuevoNombre) return alert("Completa todos los campos obligatorios.");
 
             if (!subCat) {
-                // Editando Categoría Principal
                 if (datosApp.categorias[tipo][nuevoNombre]) return alert("Ya existe una categoría con ese nombre.");
                 datosApp.categorias[tipo][nuevoNombre] = datosApp.categorias[tipo][catPrin];
                 delete datosApp.categorias[tipo][catPrin];
 
-                // Actualizar transacciones asociadas
                 datosApp.transacciones.forEach(t => {
                     const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
                     if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin) {
@@ -786,7 +739,6 @@
                     }
                 });
             } else {
-                // Editando Subcategoría
                 const subs = datosApp.categorias[tipo][catPrin];
                 if (subs.includes(nuevoNombre)) return alert("Ya existe una subcategoría con ese nombre.");
                 const idx = subs.indexOf(subCat);
@@ -794,7 +746,6 @@
                     subs[idx] = nuevoNombre;
                 }
 
-                // Actualizar transacciones asociadas
                 datosApp.transacciones.forEach(t => {
                     const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
                     if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin && t.category[1] === subCat) {
@@ -990,7 +941,6 @@
         }
 
         window.actualizarSelectEditSubcategorias = function() {
-            const tipoTx = 'gasto'; // Se puede ajustar según la lógica general o inferirse del monto
             const selectPrin = document.getElementById('editCategoriaPrincipal').value;
             const selectSub = document.getElementById('editSubcategoriaTx');
             selectSub.innerHTML = '';
