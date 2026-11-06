@@ -41,6 +41,13 @@
                     <span class="text-xs text-slate-400"><i class="fa-solid fa-calendar-days text-emerald-400"></i> Mes:</span>
                     <input type="month" id="filtroMes" onchange="renderizarTodo()" class="bg-transparent text-slate-200 text-sm outline-none cursor-pointer">
                 </div>
+                <!-- Botones de Navegación de Vistas -->
+                <button onclick="cambiarVista('dashboard')" id="btnVistaDashboard" class="bg-emerald-500 text-slate-950 px-3 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </button>
+                <button onclick="cambiarVista('categorias')" id="btnVistaCategorias" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-tags"></i> Gestionar Categorías
+                </button>
                 <!-- Botón Transferir -->
                 <button onclick="abrirModalTransferencia()" class="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Transferir entre cuentas">
                     <i class="fa-solid fa-right-left"></i> Transferir
@@ -49,11 +56,6 @@
                 <button onclick="abrirModalExportar()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Exportar Datos">
                     <i class="fa-solid fa-download text-emerald-400"></i> Exportar
                 </button>
-                <!-- Botón Importar -->
-                <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5 cursor-pointer" title="Importar Respaldo">
-                    <i class="fa-solid fa-upload text-amber-400"></i> Importar
-                    <input type="file" id="inputFile" accept=".json,.csv" onchange="procesarImportacion(event)" class="hidden">
-                </label>
                 <!-- Botón Borrar Todo -->
                 <button onclick="borrarTodaLaApp()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-rose-500/30" title="Borrar toda la app">
                     <i class="fa-solid fa-triangle-exclamation"></i> Reset App
@@ -63,239 +65,259 @@
     </header>
 
     <!-- Main Container -->
-    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6">
         
-        <!-- Columna Izquierda -->
-        <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
+        <!-- VISTA 1: DASHBOARD PRINCIPAL -->
+        <div id="vistaDashboard" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             
-            <!-- Estado Financiero y Cuentas -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Gestión de Cuentas
-                    </h2>
-                    <div class="flex gap-1.5">
-                        <button onclick="abrirModalCuenta()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Nueva Cuenta">
-                            <i class="fa-solid fa-plus"></i> Cuenta
-                        </button>
-                        <button onclick="abrirModalGestionCuentas()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Cuenta">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </div>
+            <!-- Columna Izquierda: Cuentas y Resumen de Categorías -->
+            <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
                 
-                <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80">
-                    <div>
-                        <span class="text-xs text-slate-400 block">Total Ingresos Mes</span>
-                        <span id="labelIngresos" class="text-emerald-400 font-bold text-base">$0</span>
+                <!-- Estado Financiero y Cuentas -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-piggy-bank text-emerald-400"></i> Gestión de Cuentas
+                        </h2>
+                        <div class="flex gap-1.5">
+                            <button onclick="abrirModalCuenta()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Nueva Cuenta">
+                                <i class="fa-solid fa-plus"></i> Cuenta
+                            </button>
+                            <button onclick="abrirModalGestionCuentas()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700" title="Eliminar Cuenta">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400 block">Total Gastos Mes</span>
-                        <span id="labelGastos" class="text-rose-400 font-bold text-base">$0</span>
+                    
+                    <div class="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80">
+                        <div>
+                            <span class="text-xs text-slate-400 block">Total Ingresos Mes</span>
+                            <span id="labelIngresos" class="text-emerald-400 font-bold text-base">$0</span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 block">Total Gastos Mes</span>
+                            <span id="labelGastos" class="text-rose-400 font-bold text-base">$0</span>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle en línea:</p>
+                    <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        <!-- Dinámico -->
                     </div>
                 </div>
 
-                <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle, o usa el icono para editarla:</p>
-                <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    <!-- Dinámico -->
+                <!-- Resumen por Categoría -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3 flex-grow flex flex-col">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-tags text-emerald-400"></i> Resumen por Categoría
+                        </h2>
+                        <button onclick="cambiarVista('categorias')" class="text-xs text-emerald-400 hover:underline">Gestionar &rarr;</button>
+                    </div>
+                    <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-56 overflow-y-auto pr-1 divide-y divide-slate-800/60">
+                        <!-- Dinámico -->
+                    </div>
                 </div>
+
+                <!-- Gráfico de Torta -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
+                    <div class="flex justify-between items-center w-full mb-2">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-emerald-400"></i> Distribución de Gastos
+                        </h2>
+                        <span class="text-[10px] text-slate-400 italic">Haz clic en una sección</span>
+                    </div>
+                    <div class="w-64 h-64 relative flex items-center justify-center">
+                        <canvas id="graficoTorta"></canvas>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Lista de categorías con botones de Editar y Eliminar visibles -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3 flex-grow flex flex-col">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-tags text-emerald-400"></i> Resumen por Categoría
-                    </h2>
-                    <div class="flex gap-1.5">
-                        <button onclick="abrirModalEditarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1" title="Editar Categoría o Subcategoría">
-                            <i class="fa-solid fa-pen text-[10px]"></i> Editar
+            <!-- Columna Derecha: Formulario y Movimientos -->
+            <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
+                
+                <!-- Formulario de Transacción -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus text-emerald-400"></i> Nueva Transacción
+                        </h2>
+                        <span id="labelMesActivo" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-medium">Mes: Actual</span>
+                    </div>
+                    
+                    <form id="formTransaccion" onsubmit="agregarTransaccion(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
+                                <select id="tipoTransaccion" onchange="actualizarSelectCategorias()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                    <option value="gasto">Gasto (-)</option>
+                                    <option value="ingreso">Ingreso (+)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Cuenta</label>
+                                <select id="cuentaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
+                                <input type="date" id="fechaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 cursor-pointer">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Categoría Principal</label>
+                                <select id="categoriaPrincipal" onchange="actualizarSelectSubcategorias()" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Subcategoría</label>
+                                <select id="subcategoriaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Título / Descripción</label>
+                                <input type="text" id="tituloTransaccion" placeholder="Ej: Supermercado, Sueldo..." required
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Monto (CLP)</label>
+                                <input type="number" id="montoTransaccion" placeholder="0" step="any" min="1" required
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-500/10">
+                            <i class="fa-solid fa-check"></i> Registrar Transacción
                         </button>
-                        <button onclick="abrirModalEliminarCatSub()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 flex items-center gap-1" title="Eliminar Categoría o Subcategoría">
-                            <i class="fa-solid fa-trash-can text-[10px]"></i> Eliminar
+                    </form>
+                </div>
+
+                <!-- Detalle por Cuenta Seleccionada -->
+                <div id="seccionDetalleCuenta" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl" style="display: none;">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 id="tituloDetalleCuenta" class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Movimientos de Cuenta
+                        </h2>
+                        <button onclick="cerrarDetalleCuenta()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">
+                            <i class="fa-solid fa-xmark"></i> Cerrar Vista
                         </button>
                     </div>
+                    <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">Fecha</th>
+                                    <th class="p-2.5 text-right text-emerald-400">Ingreso (+)</th>
+                                    <th class="p-2.5 text-right text-rose-400">Egreso (-)</th>
+                                    <th class="p-2.5 text-right text-sky-400">Saldo Parcial</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaDetalleCuenta" class="divide-y divide-slate-800/60">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-56 overflow-y-auto pr-1 divide-y divide-slate-800/60">
-                    <!-- Dinámico -->
-                </div>
-            </div>
 
-            <!-- Gráfico de Torta -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
-                <div class="flex justify-between items-center w-full mb-2">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-emerald-400"></i> Distribución de Gastos
-                    </h2>
-                    <span class="text-[10px] text-slate-400 italic">Haz clic en una sección</span>
+                <!-- Resumen Histórico por Mes -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-alt text-emerald-400"></i> Histórico de Ingresos y Egresos por Mes
+                        </h2>
+                    </div>
+                    <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">Mes</th>
+                                    <th class="p-2.5 text-right text-emerald-400">Ingresos (+)</th>
+                                    <th class="p-2.5 text-right text-rose-400">Egresos (-)</th>
+                                    <th class="p-2.5 text-right">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaResumenMensual" class="divide-y divide-slate-800/60">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="w-64 h-64 relative flex items-center justify-center">
-                    <canvas id="graficoTorta"></canvas>
+
+                <!-- Listado de Transacciones -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-3 gap-2">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-list text-emerald-400"></i> Movimientos del Mes
+                        </h2>
+                        <div class="flex items-center gap-2">
+                            <select id="criterioOrden" onchange="renderizarTodo()" class="bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 outline-none cursor-pointer">
+                                <option value="fecha">Ordenar por: Fecha</option>
+                                <option value="monto">Ordenar por: Gasto (Monto)</option>
+                                <option value="categoria">Ordenar por: Categoría</option>
+                            </select>
+                            <button onclick="borrarMesActual()" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-500/30 flex items-center gap-1.5">
+                                <i class="fa-solid fa-trash-can"></i> Borrar Mes
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto flex-grow max-h-[300px] overflow-y-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800 sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">Fecha</th>
+                                    <th class="p-2.5">Título</th>
+                                    <th class="p-2.5">Categoría > Subcategoría</th>
+                                    <th class="p-2.5 text-right">Monto</th>
+                                    <th class="p-2.5 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaTransacciones" class="divide-y divide-slate-800/60">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
             </div>
 
         </div>
 
-        <!-- Columna Derecha -->
-        <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
-            
-            <!-- Formulario de Transacción -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-circle-plus text-emerald-400"></i> Nueva Transacción
-                    </h2>
-                    <span id="labelMesActivo" class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-medium">Mes: Actual</span>
-                </div>
-                
-                <form id="formTransaccion" onsubmit="agregarTransaccion(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Tipo</label>
-                            <select id="tipoTransaccion" onchange="actualizarSelectCategorias()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                                <option value="gasto">Gasto (-)</option>
-                                <option value="ingreso">Ingreso (+)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Cuenta</label>
-                            <select id="cuentaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                                <!-- Dinámico -->
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Fecha</label>
-                            <input type="date" id="fechaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 cursor-pointer">
-                        </div>
+        <!-- VISTA 2: GESTIÓN DE CATEGORÍAS (Pestaña Independiente) -->
+        <div id="vistaCategorias" class="space-y-6" style="display: none;">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-tags text-emerald-400"></i> Administración de Categorías y Subcategorías
+                        </h2>
+                        <p class="text-xs text-slate-400">Crea, edita o elimina categorías principales y sus respectivas subcategorías.</p>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <label class="text-xs font-medium text-slate-400">Categoría Principal</label>
-                                <button type="button" onclick="abrirModalCategoria('principal')" class="text-[10px] text-emerald-400 hover:underline">+ Nueva Cat.</button>
-                            </div>
-                            <select id="categoriaPrincipal" onchange="actualizarSelectSubcategorias()" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                                <!-- Dinámico -->
-                            </select>
-                        </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <label class="text-xs font-medium text-slate-400">Subcategoría</label>
-                                <button type="button" onclick="abrirModalCategoria('sub')" class="text-[10px] text-emerald-400 hover:underline">+ Nueva Sub.</button>
-                            </div>
-                            <select id="subcategoriaTransaccion" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                                <!-- Dinámico -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Título / Descripción</label>
-                            <input type="text" id="tituloTransaccion" placeholder="Ej: Supermercado, Sueldo..." required
-                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-400 mb-1">Monto (CLP)</label>
-                            <input type="number" id="montoTransaccion" placeholder="0" step="any" min="1" required
-                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold py-2.5 rounded-xl text-sm transition shadow-lg shadow-emerald-500/10">
-                        <i class="fa-solid fa-check"></i> Registrar Transacción
-                    </button>
-                </form>
-            </div>
-
-            <!-- Detalle por Cuenta Seleccionada -->
-            <div id="seccionDetalleCuenta" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl" style="display: none;">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 id="tituloDetalleCuenta" class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Movimientos de Cuenta
-                    </h2>
-                    <button onclick="cerrarDetalleCuenta()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">
-                        <i class="fa-solid fa-xmark"></i> Cerrar Vista
-                    </button>
-                </div>
-                <div class="overflow-x-auto max-h-48 overflow-y-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
-                            <tr>
-                                <th class="p-2.5">Fecha</th>
-                                <th class="p-2.5 text-right text-emerald-400">Ingreso (+)</th>
-                                <th class="p-2.5 text-right text-rose-400">Egreso (-)</th>
-                                <th class="p-2.5 text-right text-sky-400">Saldo Parcial</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaDetalleCuenta" class="divide-y divide-slate-800/60">
-                            <!-- Dinámico -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Resumen Histórico por Mes -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-alt text-emerald-400"></i> Histórico de Ingresos y Egresos por Mes
-                    </h2>
-                </div>
-                <div class="overflow-x-auto max-h-48 overflow-y-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
-                            <tr>
-                                <th class="p-2.5">Mes</th>
-                                <th class="p-2.5 text-right text-emerald-400">Ingresos (+)</th>
-                                <th class="p-2.5 text-right text-rose-400">Egresos (-)</th>
-                                <th class="p-2.5 text-right">Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaResumenMensual" class="divide-y divide-slate-800/60">
-                            <!-- Dinámico -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Listado de Transacciones con Ordenamiento -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-grow flex flex-col">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-3 gap-2">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-list text-emerald-400"></i> Movimientos del Mes
-                    </h2>
-                    <div class="flex items-center gap-2">
-                        <select id="criterioOrden" onchange="renderizarTodo()" class="bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 outline-none cursor-pointer">
-                            <option value="fecha">Ordenar por: Fecha</option>
-                            <option value="monto">Ordenar por: Gasto (Monto)</option>
-                            <option value="categoria">Ordenar por: Categoría</option>
+                    <div class="flex items-center gap-3">
+                        <select id="selectorTipoCatAdmin" onchange="renderizarGestionCategorias()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                            <option value="gasto">Gastos</option>
+                            <option value="ingreso">Ingresos</option>
                         </select>
-                        <button onclick="borrarMesActual()" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-500/30 flex items-center gap-1.5">
-                            <i class="fa-solid fa-trash-can"></i> Borrar Mes
+                        <button onclick="abrirModalNuevaCatAdmin()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl text-sm font-semibold transition">
+                            <i class="fa-solid fa-plus"></i> Nueva Categoría Principal
                         </button>
                     </div>
                 </div>
 
-                <div class="overflow-x-auto flex-grow max-h-[300px] overflow-y-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-950 text-slate-400 text-xs uppercase border-b border-slate-800 sticky top-0">
-                            <tr>
-                                <th class="p-2.5">Fecha</th>
-                                <th class="p-2.5">Título</th>
-                                <th class="p-2.5">Categoría > Subcategoría</th>
-                                <th class="p-2.5 text-right">Monto</th>
-                                <th class="p-2.5 text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaTransacciones" class="divide-y divide-slate-800/60">
-                            <!-- Dinámico -->
-                        </tbody>
-                    </table>
+                <!-- Listado Dinámico de Categorías y Subcategorías -->
+                <div id="contenedorAdminCategorias" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    <!-- Dinámico -->
                 </div>
             </div>
-
         </div>
 
     </main>
@@ -321,38 +343,6 @@
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModalEditarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
                 <button onclick="guardarEdicionCuenta()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Actualizar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Editar Categoría o Subcategoría -->
-    <div id="modalEditarCatSub" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-semibold text-white">Editar Categoría o Subcategoría</h3>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Tipo</label>
-                <select id="editTipoTx" onchange="actualizarSelectsEditarCat()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
-                    <option value="gasto">Gasto</option>
-                    <option value="ingreso">Ingreso</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Categoría Principal</label>
-                <select id="editCatPrincipal" onchange="actualizarSelectsEditarSub()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Subcategoría (Opcional)</label>
-                <select id="editSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
-                    <option value="">-- Editar Categoría Principal --</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs text-slate-400 mb-1">Nuevo Nombre</label>
-                <input type="text" id="nuevoNombreCatInput" placeholder="Nuevo nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
-            </div>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="cerrarModalEditarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="ejecutarEdicionCatSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar Cambios</button>
             </div>
         </div>
     </div>
@@ -391,48 +381,7 @@
         </div>
     </div>
 
-    <!-- Modal Eliminar Categoría / Sub -->
-    <div id="modalEliminarCatSub" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-semibold text-white">Eliminar Categoría / Sub</h3>
-            <select id="delTipoTx" onchange="actualizarSelectsEliminarCat()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
-                <option value="gasto">Gasto</option>
-                <option value="ingreso">Ingreso</option>
-            </select>
-            <select id="delCatPrincipal" onchange="actualizarSelectsEliminarSub()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
-            <select id="delSubcategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
-                <option value="">-- Borrar Categoría Completa --</option>
-            </select>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="cerrarModalEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="ejecutarEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Categoría Nueva -->
-    <div id="modalCategoria" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 id="tituloModalCategoria" class="text-base font-semibold text-white">Agregar Categoría</h3>
-            <input type="text" id="nombreNuevaCatInput" placeholder="Nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
-            <div class="flex justify-end gap-2">
-                <button onclick="cerrarModalCategoria()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="guardarNuevaCategoriaSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="modalGestionCuentas" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
-            <select id="selectCuentaEliminar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="cerrarModalGestionCuentas()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
-                <button onclick="ejecutarEliminarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Modal Transferencia -->
     <div id="modalTransferencia" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Transferir o Retirar</h3>
@@ -453,6 +402,18 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button onclick="cerrarModalTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
                 <button onclick="ejecutarTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestión Cuentas -->
+    <div id="modalGestionCuentas" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
+            <select id="selectCuentaEliminar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalGestionCuentas()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarEliminarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
             </div>
         </div>
     </div>
@@ -493,8 +454,6 @@
         };
 
         let chartInstance = null;
-        let tipoCatModalActual = 'principal';
-        let categoriaSeleccionadaGrafico = null;
         let timeoutSync = null;
         let cuentaSeleccionadaId = null;
 
@@ -530,6 +489,28 @@
 
             cargarDesdeNube();
         };
+
+        // --- NAVEGACIÓN DE VISTAS ---
+        window.cambiarVista = function(vista) {
+            const dash = document.getElementById('vistaDashboard');
+            const cats = document.getElementById('vistaCategorias');
+            const btnDash = document.getElementById('btnVistaDashboard');
+            const btnCats = document.getElementById('btnVistaCategorias');
+
+            if (vista === 'dashboard') {
+                dash.style.display = 'grid';
+                cats.style.display = 'none';
+                btnDash.className = "bg-emerald-500 text-slate-950 px-3 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5";
+                btnCats.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5";
+                renderizarTodo();
+            } else {
+                dash.style.display = 'none';
+                cats.style.display = 'block';
+                btnCats.className = "bg-emerald-500 text-slate-950 px-3 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5";
+                btnDash.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5";
+                renderizarGestionCategorias();
+            }
+        }
 
         async function cargarDesdeNube() {
             const statusEl = document.getElementById('syncStatus');
@@ -570,7 +551,11 @@
 
         function guardarYSincronizar() {
             localStorage.setItem('mis_gastos_app_data', JSON.stringify(datosApp));
-            renderizarTodo();
+            if (document.getElementById('vistaDashboard').style.display !== 'none') {
+                renderizarTodo();
+            } else {
+                renderizarGestionCategorias();
+            }
 
             clearTimeout(timeoutSync);
             timeoutSync = setTimeout(async () => {
@@ -711,138 +696,136 @@
             guardarYSincronizar();
         }
 
-        // --- GESTIÓN DE CATEGORÍAS ---
-        window.abrirModalCategoria = function(tipo) {
-            tipoCatModalActual = tipo;
-            document.getElementById('tituloModalCategoria').innerText = tipo === 'principal' ? 'Nueva Categoría Principal' : 'Nueva Subcategoría';
-            document.getElementById('nombreNuevaCatInput').value = '';
-            document.getElementById('modalCategoria').style.display = 'flex';
-        }
-        window.cerrarModalCategoria = function() { document.getElementById('modalCategoria').style.display = 'none'; }
-        window.guardarNuevaCategoriaSub = function() {
-            const nombre = document.getElementById('nombreNuevaCatInput').value.trim();
-            const tipoTx = document.getElementById('tipoTransaccion').value;
-            if (!nombre) return;
+        // --- GESTIÓN Y RENDERIZADO DE LA PESTAÑA CATEGORÍAS ---
+        window.renderizarGestionCategorias = function() {
+            const tipo = document.getElementById('selectorTipoCatAdmin').value;
+            const container = document.getElementById('contenedorAdminCategorias');
+            container.innerHTML = '';
 
-            if (tipoCatModalActual === 'principal') {
-                if (!datosApp.categorias[tipoTx][nombre]) {
-                    datosApp.categorias[tipoTx][nombre] = ['General'];
-                }
-            } else {
-                const catPrin = document.getElementById('categoriaPrincipal').value;
-                if (catPrin && datosApp.categorias[tipoTx][catPrin]) {
-                    if (!datosApp.categorias[tipoTx][catPrin].includes(nombre)) {
-                        datosApp.categorias[tipoTx][catPrin].push(nombre);
-                    }
-                }
-            }
-            cerrarModalCategoria();
-            actualizarSelectCategorias();
-            guardarYSincronizar();
-        }
-
-        // --- EDICIÓN DE CATEGORÍAS Y SUBCATEGORÍAS ---
-        window.abrirModalEditarCatSub = function() {
-            actualizarSelectsEditarCat();
-            document.getElementById('nuevoNombreCatInput').value = '';
-            document.getElementById('modalEditarCatSub').style.display = 'flex';
-        }
-        window.cerrarModalEditarCatSub = function() { document.getElementById('modalEditarCatSub').style.display = 'none'; }
-
-        window.actualizarSelectsEditarCat = function() {
-            const tipo = document.getElementById('editTipoTx').value;
-            const selectPrin = document.getElementById('editCatPrincipal');
-            selectPrin.innerHTML = '';
             const cats = datosApp.categorias[tipo] || {};
-            Object.keys(cats).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
-            actualizarSelectsEditarSub();
+            const keys = Object.keys(cats);
+
+            if (keys.length === 0) {
+                container.innerHTML = '<div class="p-4 text-center text-slate-500 italic text-sm">No hay categorías configuradas.</div>';
+                return;
+            }
+
+            keys.forEach(catPrin => {
+                const subs = cats[catPrin] || [];
+                const card = document.createElement('div');
+                card.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3";
+                
+                let subsHtml = subs.map((sub, idx) => `
+                    <div class="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg text-xs">
+                        <span class="text-slate-300"><i class="fa-solid fa-angle-right text-emerald-400 mr-2"></i>${sub}</span>
+                        <div class="flex gap-2">
+                            <button onclick="editarSubcategoriaPrompt('${tipo}', '${catPrin}', ${idx})" class="text-slate-400 hover:text-emerald-400" title="Editar subcategoría">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="eliminarSubcategoria('${tipo}', '${catPrin}', '${sub}')" class="text-slate-400 hover:text-rose-400" title="Eliminar subcategoría">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
+                        <span class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-tag text-emerald-400"></i> ${catPrin}
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="agregarSubcategoriaPrompt('${tipo}', '${catPrin}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg border border-slate-700">
+                                + Subcategoría
+                            </button>
+                            <button onclick="editarCategoriaPrincipalPrompt('${tipo}', '${catPrin}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 px-2.5 py-1 rounded-lg border border-slate-700" title="Editar categoría principal">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </button>
+                            <button onclick="eliminarCategoriaPrincipal('${tipo}', '${catPrin}')" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-2.5 py-1 rounded-lg border border-rose-500/30" title="Eliminar categoría">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        ${subsHtml || '<span class="text-xs text-slate-500 italic">Sin subcategorías</span>'}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        window.actualizarSelectsEditarSub = function() {
-            const tipo = document.getElementById('editTipoTx').value;
-            const catPrin = document.getElementById('editCatPrincipal').value;
-            const selectSub = document.getElementById('editSubcategoria');
-            selectSub.innerHTML = '<option value="">-- Editar Categoría Principal --</option>';
-            (datosApp.categorias[tipo][catPrin] || []).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
+        window.abrirModalNuevaCatAdmin = function() {
+            const tipo = document.getElementById('selectorTipoCatAdmin').value;
+            const nombre = prompt(`Nombre de la nueva categoría principal (${tipo}):`);
+            if (nombre && nombre.trim() !== '') {
+                const catNombre = nombre.trim();
+                if (datosApp.categorias[tipo][catNombre]) return alert("Ya existe una categoría con ese nombre.");
+                datosApp.categorias[tipo][catNombre] = ['General'];
+                guardarYSincronizar();
+            }
         }
 
-        window.ejecutarEdicionCatSub = function() {
-            const tipo = document.getElementById('editTipoTx').value;
-            const catPrin = document.getElementById('editCatPrincipal').value;
-            const subCat = document.getElementById('editSubcategoria').value;
-            const nuevoNombre = document.getElementById('nuevoNombreCatInput').value.trim();
+        window.editarCategoriaPrincipalPrompt = function(tipo, catVieja) {
+            const nuevoNombre = prompt(`Nuevo nombre para la categoría principal "${catVieja}":`, catVieja);
+            if (nuevoNombre && nuevoNombre.trim() !== '' && nuevoNombre !== catVieja) {
+                const nombreLimpio = nuevoNombre.trim();
+                if (datosApp.categorias[tipo][nombreLimpio]) return alert("Ya existe una categoría con ese nombre.");
+                
+                datosApp.categorias[tipo][nombreLimpio] = datosApp.categorias[tipo][catVieja];
+                delete datosApp.categorias[tipo][catVieja];
 
-            if (!catPrin || !nuevoNombre) return alert("Completa todos los campos obligatorios.");
+                // Actualizar transacciones
+                datosApp.transacciones.forEach(t => {
+                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
+                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catVieja) {
+                        t.category[0] = nombreLimpio;
+                    }
+                });
+                guardarYSincronizar();
+            }
+        }
 
-            if (!subCat) {
-                if (datosApp.categorias[tipo][nuevoNombre]) return alert("Ya existe una categoría con ese nombre.");
-                datosApp.categorias[tipo][nuevoNombre] = datosApp.categorias[tipo][catPrin];
+        window.agregarSubcategoriaPrompt = function(tipo, catPrin) {
+            const sub = prompt(`Nueva subcategoría para "${catPrin}":`);
+            if (sub && sub.trim() !== '') {
+                const subLimpio = sub.trim();
+                if (datosApp.categorias[tipo][catPrin].includes(subLimpio)) return alert("Ya existe esa subcategoría.");
+                datosApp.categorias[tipo][catPrin].push(subLimpio);
+                guardarYSincronizar();
+            }
+        }
+
+        window.editarSubcategoriaPrompt = function(tipo, catPrin, idx) {
+            const subVieja = datosApp.categorias[tipo][catPrin][idx];
+            const subNueva = prompt(`Editar subcategoría "${subVieja}":`, subVieja);
+            if (subNueva && subNueva.trim() !== '' && subNueva !== subVieja) {
+                const subNuevaLimpia = subNueva.trim();
+                if (datosApp.categorias[tipo][catPrin].includes(subNuevaLimpia)) return alert("Ya existe esa subcategoría.");
+                
+                datosApp.categorias[tipo][catPrin][idx] = subNuevaLimpia;
+
+                // Actualizar transacciones
+                datosApp.transacciones.forEach(t => {
+                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
+                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin && t.category[1] === subVieja) {
+                        t.category[1] = subNuevaLimpia;
+                    }
+                });
+                guardarYSincronizar();
+            }
+        }
+
+        window.eliminarSubcategoria = function(tipo, catPrin, subCat) {
+            if (confirm(`¿Eliminar subcategoría "${subCat}"?`)) {
+                datosApp.categorias[tipo][catPrin] = datosApp.categorias[tipo][catPrin].filter(s => s !== subCat);
+                guardarYSincronizar();
+            }
+        }
+
+        window.eliminarCategoriaPrincipal = function(tipo, catPrin) {
+            if (confirm(`⚠️ ¿Eliminar categoría principal "${catPrin}" completa y sus subcategorías?`)) {
                 delete datosApp.categorias[tipo][catPrin];
-
-                datosApp.transacciones.forEach(t => {
-                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
-                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin) {
-                        t.category[0] = nuevoNombre;
-                    }
-                });
-            } else {
-                const subs = datosApp.categorias[tipo][catPrin];
-                if (subs.includes(nuevoNombre)) return alert("Ya existe una subcategoría con ese nombre.");
-                const idx = subs.indexOf(subCat);
-                if (idx !== -1) {
-                    subs[idx] = nuevoNombre;
-                }
-
-                datosApp.transacciones.forEach(t => {
-                    const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
-                    if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin && t.category[1] === subCat) {
-                        t.category[1] = nuevoNombre;
-                    }
-                });
-            }
-
-            cerrarModalEditarCatSub();
-            guardarYSincronizar();
-        }
-
-        window.abrirModalEliminarCatSub = function() {
-            actualizarSelectsEliminarCat();
-            document.getElementById('modalEliminarCatSub').style.display = 'flex';
-        }
-        window.cerrarModalEliminarCatSub = function() { document.getElementById('modalEliminarCatSub').style.display = 'none'; }
-        window.actualizarSelectsEliminarCat = function() {
-            const tipo = document.getElementById('delTipoTx').value;
-            const selectPrin = document.getElementById('delCatPrincipal');
-            selectPrin.innerHTML = '';
-            const cats = datosApp.categorias[tipo] || {};
-            Object.keys(cats).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
-            actualizarSelectsEliminarSub();
-        }
-        window.actualizarSelectsEliminarSub = function() {
-            const tipo = document.getElementById('delTipoTx').value;
-            const catPrin = document.getElementById('delCatPrincipal').value;
-            const selectSub = document.getElementById('delSubcategoria');
-            selectSub.innerHTML = '<option value="">-- Borrar Categoría Completa --</option>';
-            (datosApp.categorias[tipo][catPrin] || []).forEach(sub => selectSub.appendChild(new Option(sub, sub)));
-        }
-        window.ejecutarEliminarCatSub = function() {
-            const tipo = document.getElementById('delTipoTx').value;
-            const catPrin = document.getElementById('delCatPrincipal').value;
-            const subCat = document.getElementById('delSubcategoria').value;
-            if (!catPrin) return;
-
-            if (subCat) {
-                if (confirm(`¿Eliminar subcategoría "${subCat}"?`)) {
-                    datosApp.categorias[tipo][catPrin] = datosApp.categorias[tipo][catPrin].filter(s => s !== subCat);
-                    cerrarModalEliminarCatSub();
-                    guardarYSincronizar();
-                }
-            } else {
-                if (confirm(`⚠️ ¿Eliminar categoría "${catPrin}" completa?`)) {
-                    delete datosApp.categorias[tipo][catPrin];
-                    cerrarModalEliminarCatSub();
-                    guardarYSincronizar();
-                }
+                guardarYSincronizar();
             }
         }
 
