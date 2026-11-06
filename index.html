@@ -65,7 +65,7 @@
     <!-- Main Container -->
     <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        <!-- Columna Izquierda: Cuentas, Resumen e Info del Gráfico -->
+        <!-- Columna Izquierda -->
         <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
             
             <!-- Estado Financiero y Cuentas -->
@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-            <!-- Lista de categorías con botones de gestión visibles -->
+            <!-- Lista de categorías con botones de Editar y Eliminar visibles -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3 flex-grow flex flex-col">
                 <div class="flex justify-between items-center">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
@@ -406,6 +406,53 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button onclick="cerrarModalEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
                 <button onclick="ejecutarEliminarCatSub()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Categoría Nueva -->
+    <div id="modalCategoria" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 id="tituloModalCategoria" class="text-base font-semibold text-white">Agregar Categoría</h3>
+            <input type="text" id="nombreNuevaCatInput" placeholder="Nombre..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white">
+            <div class="flex justify-end gap-2">
+                <button onclick="cerrarModalCategoria()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="guardarNuevaCategoriaSub()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalGestionCuentas" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
+            <select id="selectCuentaEliminar" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalGestionCuentas()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarEliminarCuenta()" class="px-4 py-2 rounded-xl text-sm bg-rose-500 font-semibold text-slate-950">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalTransferencia" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-base font-semibold text-white">Transferir o Retirar</h3>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Origen</label>
+                <select id="cuentaOrigen" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Destino</label>
+                <select id="cuentaDestino" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white">
+                    <option value="retiro">💵 Retiro externo</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Monto</label>
+                <input type="number" id="montoTransferencia" placeholder="0" min="1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="cerrarModalTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-slate-800 text-slate-300">Cancelar</button>
+                <button onclick="ejecutarTransferencia()" class="px-4 py-2 rounded-xl text-sm bg-emerald-500 font-semibold text-slate-950">Transferir</button>
             </div>
         </div>
     </div>
