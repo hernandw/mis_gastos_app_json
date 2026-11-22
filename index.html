@@ -28,7 +28,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-white tracking-tight">Mis Gastos Pro</h1>
-                    <p class="text-xs text-slate-400">Control mensual, cuentas, categorías, subcategorías y respaldo JSON/CSV</p>
+                    <p class="text-xs text-slate-400">Control mensual, cuentas, categorías, subcategorías y respaldo JSON</p>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -53,9 +53,14 @@
                     <i class="fa-solid fa-right-left"></i> Transferir
                 </button>
                 <!-- Botón Exportar -->
-                <button onclick="abrirModalExportar()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Exportar Datos">
+                <button onclick="abrirModalExportar()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5" title="Exportar Backup JSON">
                     <i class="fa-solid fa-download text-emerald-400"></i> Exportar
                 </button>
+                <!-- Botón Importar -->
+                <label class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5 cursor-pointer" title="Importar Backup JSON">
+                    <i class="fa-solid fa-upload text-amber-400"></i> Importar
+                    <input type="file" id="inputFile" accept=".json" onchange="procesarImportacion(event)" class="hidden">
+                </label>
                 <!-- Botón Borrar Todo -->
                 <button onclick="borrarTodaLaApp()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-2 rounded-lg text-sm font-medium transition border border-rose-500/30" title="Borrar toda la app">
                     <i class="fa-solid fa-triangle-exclamation"></i> Reset App
@@ -70,7 +75,7 @@
         <!-- VISTA 1: DASHBOARD PRINCIPAL -->
         <div id="vistaDashboard" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
             
-            <!-- Columna Izquierda: Cuentas y Resumen de Categorías -->
+            <!-- Columna Izquierda: Cuentas, Resumen y Gráfico -->
             <div class="lg:col-span-5 flex flex-col justify-between space-y-6">
                 
                 <!-- Estado Financiero y Cuentas -->
@@ -100,7 +105,7 @@
                         </div>
                     </div>
 
-                    <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle en línea:</p>
+                    <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier cuenta para ver su detalle en línea, o usa el lápiz para renombrarla:</p>
                     <div id="listaCuentas" class="space-y-2 max-h-40 overflow-y-auto pr-1">
                         <!-- Dinámico -->
                     </div>
@@ -127,14 +132,14 @@
                         </h2>
                         <span class="text-[10px] text-slate-400 italic">Haz clic en una sección</span>
                     </div>
-                    <div class="w-64 h-64 relative flex items-center justify-center">
+                    <div class="w-full max-w-[260px] h-64 relative flex items-center justify-center">
                         <canvas id="graficoTorta"></canvas>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Columna Derecha: Formulario y Movimientos -->
+            <!-- Columna Derecha: Formulario, Detalle de Cuenta, Histórico Mensual y Movimientos -->
             <div class="lg:col-span-7 space-y-6 flex flex-col justify-between">
                 
                 <!-- Formulario de Transacción -->
@@ -276,7 +281,7 @@
                                 <tr>
                                     <th class="p-2.5">Fecha</th>
                                     <th class="p-2.5">Título</th>
-                                    <th class="p-2.5">Categoría > Subcategoría</th>
+                                    <th class="p-2.5">Categoría &gt; Subcategoría</th>
                                     <th class="p-2.5 text-right">Monto</th>
                                     <th class="p-2.5 text-center">Acciones</th>
                                 </tr>
@@ -292,7 +297,7 @@
 
         </div>
 
-        <!-- VISTA 2: GESTIÓN DE CATEGORÍAS (Pestaña Independiente) -->
+        <!-- VISTA 2: GESTIÓN DE CATEGORÍAS -->
         <div id="vistaCategorias" class="space-y-6" style="display: none;">
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-4">
@@ -313,8 +318,7 @@
                     </div>
                 </div>
 
-                <!-- Listado Dinámico de Categorías y Subcategorías -->
-                <div id="contenedorAdminCategorias" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                <div id="contenedorAdminCategorias" class="space-y-4 max-h-[520px] overflow-y-auto pr-2">
                     <!-- Dinámico -->
                 </div>
             </div>
@@ -334,7 +338,6 @@
         </div>
     </div>
 
-    <!-- Modal Editar Cuenta -->
     <div id="modalEditarCuenta" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Editar Nombre de Cuenta</h3>
@@ -347,7 +350,6 @@
         </div>
     </div>
 
-    <!-- Modal Editar Transacción -->
     <div id="modalEditarGasto" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Editar Transacción</h3>
@@ -381,7 +383,6 @@
         </div>
     </div>
 
-    <!-- Modal Transferencia -->
     <div id="modalTransferencia" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Transferir o Retirar</h3>
@@ -406,7 +407,6 @@
         </div>
     </div>
 
-    <!-- Modal Gestión Cuentas -->
     <div id="modalGestionCuentas" style="display: none;" class="fixed inset-0 bg-black/70 backdrop-blur-sm items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-base font-semibold text-white">Eliminar Cuenta</h3>
@@ -454,6 +454,7 @@
         };
 
         let chartInstance = null;
+        let categoriaSeleccionadaGrafico = null;
         let timeoutSync = null;
         let cuentaSeleccionadaId = null;
 
@@ -490,6 +491,52 @@
             cargarDesdeNube();
         };
 
+        // --- RESPALDO EXPORTAR / IMPORTAR ---
+        window.abrirModalExportar = function() {
+            const blob = new Blob([JSON.stringify(datosApp, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const fecha = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `backup-mis-gastos-${fecha}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        window.procesarImportacion = function(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importado = JSON.parse(String(e.target?.result || "{}"));
+                    if (!importado || !Array.isArray(importado.transacciones)) {
+                        alert("El archivo JSON no tiene una estructura válida.");
+                        return;
+                    }
+                    datosApp = {
+                        ...datosApp,
+                        ...importado,
+                        cuentas: Array.isArray(importado.cuentas) && importado.cuentas.length > 0
+                            ? importado.cuentas
+                            : datosApp.cuentas,
+                        categorias: importado.categorias || datosApp.categorias,
+                        transacciones: importado.transacciones
+                    };
+                    guardarYSincronizar();
+                    alert("Respaldo restaurado correctamente.");
+                } catch {
+                    alert("No se pudo leer el archivo seleccionado.");
+                } finally {
+                    event.target.value = "";
+                }
+            };
+            reader.readAsText(file);
+        };
+
         // --- NAVEGACIÓN DE VISTAS ---
         window.cambiarVista = function(vista) {
             const dash = document.getElementById('vistaDashboard');
@@ -510,7 +557,7 @@
                 btnDash.className = "bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center gap-1.5";
                 renderizarGestionCategorias();
             }
-        }
+        };
 
         async function cargarDesdeNube() {
             const statusEl = document.getElementById('syncStatus');
@@ -582,8 +629,8 @@
         }
 
         // --- GESTIÓN DE CUENTAS ---
-        window.abrirModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'flex'; }
-        window.cerrarModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'none'; }
+        window.abrirModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'flex'; };
+        window.cerrarModalCuenta = function() { document.getElementById('modalCuenta').style.display = 'none'; };
         window.guardarNuevaCuenta = function() {
             const nombre = document.getElementById('nombreNuevaCuenta').value.trim();
             if (nombre) {
@@ -594,19 +641,17 @@
             } else {
                 alert("Ingresa un nombre de cuenta válido.");
             }
-        }
+        };
 
         window.abrirModalEditarCuenta = function(e, cId, cNombre) {
             e.stopPropagation();
             document.getElementById('editCuentaId').value = cId;
             document.getElementById('editNombreCuentaInput').value = cNombre;
             document.getElementById('modalEditarCuenta').style.display = 'flex';
-        }
-
+        };
         window.cerrarModalEditarCuenta = function() {
             document.getElementById('modalEditarCuenta').style.display = 'none';
-        }
-
+        };
         window.guardarEdicionCuenta = function() {
             const cId = document.getElementById('editCuentaId').value;
             const nuevoNombre = document.getElementById('editNombreCuentaInput').value.trim();
@@ -618,15 +663,15 @@
                 cerrarModalEditarCuenta();
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.abrirModalGestionCuentas = function() {
             const select = document.getElementById('selectCuentaEliminar');
             select.innerHTML = '';
             datosApp.cuentas.forEach(c => select.appendChild(new Option(c.nombre, c.id)));
             document.getElementById('modalGestionCuentas').style.display = 'flex';
-        }
-        window.cerrarModalGestionCuentas = function() { document.getElementById('modalGestionCuentas').style.display = 'none'; }
+        };
+        window.cerrarModalGestionCuentas = function() { document.getElementById('modalGestionCuentas').style.display = 'none'; };
         window.ejecutarEliminarCuenta = function() {
             const cuentaId = document.getElementById('selectCuentaEliminar').value;
             if (datosApp.cuentas.length <= 1) { alert("Debes conservar al menos una cuenta."); return; }
@@ -637,17 +682,16 @@
                 cerrarModalGestionCuentas();
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.seleccionarCuentaDetalle = function(cId) {
             cuentaSeleccionadaId = cId;
             renderizarTodo();
-        }
-
+        };
         window.cerrarDetalleCuenta = function() {
             cuentaSeleccionadaId = null;
             document.getElementById('seccionDetalleCuenta').style.display = 'none';
-        }
+        };
 
         window.abrirModalTransferencia = function() {
             const origen = document.getElementById('cuentaOrigen');
@@ -659,9 +703,8 @@
                 destino.appendChild(new Option(c.nombre, c.id));
             });
             document.getElementById('modalTransferencia').style.display = 'flex';
-        }
-        window.cerrarModalTransferencia = function() { document.getElementById('modalTransferencia').style.display = 'none'; }
-
+        };
+        window.cerrarModalTransferencia = function() { document.getElementById('modalTransferencia').style.display = 'none'; };
         window.ejecutarTransferencia = function() {
             const origenId = document.getElementById('cuentaOrigen').value;
             const destinoId = document.getElementById('cuentaDestino').value;
@@ -694,7 +737,7 @@
             document.getElementById('montoTransferencia').value = '';
             cerrarModalTransferencia();
             guardarYSincronizar();
-        }
+        };
 
         // --- GESTIÓN Y RENDERIZADO DE LA PESTAÑA CATEGORÍAS ---
         window.renderizarGestionCategorias = function() {
@@ -715,7 +758,7 @@
                 const card = document.createElement('div');
                 card.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3";
                 
-                let subsHtml = subs.map((sub, idx) => `
+                const subsHtml = subs.map((sub, idx) => `
                     <div class="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg text-xs">
                         <span class="text-slate-300"><i class="fa-solid fa-angle-right text-emerald-400 mr-2"></i>${sub}</span>
                         <div class="flex gap-2">
@@ -752,7 +795,7 @@
                 `;
                 container.appendChild(card);
             });
-        }
+        };
 
         window.abrirModalNuevaCatAdmin = function() {
             const tipo = document.getElementById('selectorTipoCatAdmin').value;
@@ -763,7 +806,7 @@
                 datosApp.categorias[tipo][catNombre] = ['General'];
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.editarCategoriaPrincipalPrompt = function(tipo, catVieja) {
             const nuevoNombre = prompt(`Nuevo nombre para la categoría principal "${catVieja}":`, catVieja);
@@ -774,7 +817,6 @@
                 datosApp.categorias[tipo][nombreLimpio] = datosApp.categorias[tipo][catVieja];
                 delete datosApp.categorias[tipo][catVieja];
 
-                // Actualizar transacciones
                 datosApp.transacciones.forEach(t => {
                     const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
                     if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catVieja) {
@@ -783,7 +825,7 @@
                 });
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.agregarSubcategoriaPrompt = function(tipo, catPrin) {
             const sub = prompt(`Nueva subcategoría para "${catPrin}":`);
@@ -793,7 +835,7 @@
                 datosApp.categorias[tipo][catPrin].push(subLimpio);
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.editarSubcategoriaPrompt = function(tipo, catPrin, idx) {
             const subVieja = datosApp.categorias[tipo][catPrin][idx];
@@ -804,7 +846,6 @@
                 
                 datosApp.categorias[tipo][catPrin][idx] = subNuevaLimpia;
 
-                // Actualizar transacciones
                 datosApp.transacciones.forEach(t => {
                     const tTipo = t.amount > 0 ? 'ingreso' : 'gasto';
                     if (tTipo === tipo && Array.isArray(t.category) && t.category[0] === catPrin && t.category[1] === subVieja) {
@@ -813,21 +854,21 @@
                 });
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.eliminarSubcategoria = function(tipo, catPrin, subCat) {
             if (confirm(`¿Eliminar subcategoría "${subCat}"?`)) {
                 datosApp.categorias[tipo][catPrin] = datosApp.categorias[tipo][catPrin].filter(s => s !== subCat);
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.eliminarCategoriaPrincipal = function(tipo, catPrin) {
             if (confirm(`⚠️ ¿Eliminar categoría principal "${catPrin}" completa y sus subcategorías?`)) {
                 delete datosApp.categorias[tipo][catPrin];
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.actualizarSelectCategorias = function() {
             const tipoTx = document.getElementById('tipoTransaccion').value;
@@ -836,9 +877,7 @@
             selectPrin.innerHTML = '';
             
             const cats = datosApp.categorias[tipoTx] || {};
-            const principales = Object.keys(cats);
-            
-            if (principales.length === 0) {
+            if (Object.keys(cats).length === 0) {
                 datosApp.categorias[tipoTx] = { "General": ["General"] };
             }
 
@@ -846,7 +885,7 @@
                 selectPrin.appendChild(new Option(cat, cat));
             });
             actualizarSelectSubcategorias();
-        }
+        };
 
         window.actualizarSelectSubcategorias = function() {
             const tipoTx = document.getElementById('tipoTransaccion').value;
@@ -865,7 +904,7 @@
             subs.forEach(sub => {
                 selectSub.appendChild(new Option(sub, sub));
             });
-        }
+        };
 
         window.agregarTransaccion = function(e) {
             e.preventDefault();
@@ -891,14 +930,14 @@
             document.getElementById('tituloTransaccion').value = '';
             document.getElementById('montoTransaccion').value = '';
             guardarYSincronizar();
-        }
+        };
 
         window.eliminarTransaccion = function(uuid) {
             if (confirm("¿Eliminar registro?")) {
                 datosApp.transacciones = datosApp.transacciones.filter(t => (t.uuid || t.id) !== uuid);
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.borrarMesActual = function() {
             const mesSeleccionado = document.getElementById('filtroMes').value;
@@ -906,7 +945,7 @@
                 datosApp.transacciones = datosApp.transacciones.filter(t => !normalizarFechaIso(t.date).startsWith(mesSeleccionado));
                 guardarYSincronizar();
             }
-        }
+        };
 
         window.borrarTodaLaApp = async function() {
             if (confirm("⚠️ ¿Restablecer toda la app y borrar todos los datos de la nube y localmente?")) {
@@ -939,7 +978,7 @@
 
                 location.reload();
             }
-        }
+        };
 
         // --- EDICIÓN DE TRANSACCIONES ---
         window.abrirModalEditar = function(uuid) {
@@ -961,27 +1000,27 @@
                 selectPrin.innerHTML = '';
                 Object.keys(datosApp.categorias[tipoTx] || {}).forEach(cat => selectPrin.appendChild(new Option(cat, cat)));
                 
-                let curCat = Array.isArray(tx.category) ? tx.category[0] : 'General';
+                const curCat = Array.isArray(tx.category) ? tx.category[0] : 'General';
                 selectPrin.value = curCat;
                 actualizarSelectEditSubcategorias();
                 document.getElementById('editSubcategoriaTx').value = Array.isArray(tx.category) ? tx.category[1] : 'General';
 
                 document.getElementById('modalEditarGasto').style.display = 'flex';
             }
-        }
+        };
 
         window.actualizarSelectEditSubcategorias = function() {
             const selectPrin = document.getElementById('editCategoriaPrincipal').value;
             const selectSub = document.getElementById('editSubcategoriaTx');
             selectSub.innerHTML = '';
             let subs = ['General'];
-            for (let tipo in datosApp.categorias) {
+            for (const tipo in datosApp.categorias) {
                 if (datosApp.categorias[tipo][selectPrin]) subs = datosApp.categorias[tipo][selectPrin];
             }
             subs.forEach(sub => selectSub.appendChild(new Option(sub, sub)));
-        }
+        };
 
-        window.cerrarModalEditar = function() { document.getElementById('modalEditarGasto').style.display = 'none'; }
+        window.cerrarModalEditar = function() { document.getElementById('modalEditarGasto').style.display = 'none'; };
 
         window.guardarEdicionGasto = function() {
             const uuid = document.getElementById('editUuid').value;
@@ -995,7 +1034,7 @@
                 cerrarModalEditar();
                 guardarYSincronizar();
             }
-        }
+        };
 
         function normalizarFechaIso(dateStr) {
             if (!dateStr) return '2026-11-01';
@@ -1020,19 +1059,20 @@
             selectCuenta.innerHTML = '';
             listaCuentasDiv.innerHTML = '';
 
-            let saldosCuentas = {};
+            const saldosCuentas = {};
             datosApp.cuentas.forEach(c => saldosCuentas[c.id] = 0);
 
-            let ingresosMes = 0, gastosMes = 0, gastosPorCategoriaMes = {};
-            let resumenPorMes = {};
+            let ingresosMes = 0, gastosMes = 0;
+            const gastosPorCategoriaMes = {};
+            const resumenPorMes = {};
 
             datosApp.transacciones.forEach(t => {
                 const cId = t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1');
                 if (saldosCuentas[cId] !== undefined) saldosCuentas[cId] += t.amount;
                 else saldosCuentas[cId] = t.amount;
 
-                let fechaIso = normalizarFechaIso(t.date);
-                let mesStr = fechaIso.slice(0, 7);
+                const fechaIso = normalizarFechaIso(t.date);
+                const mesStr = fechaIso.slice(0, 7);
 
                 if (!resumenPorMes[mesStr]) resumenPorMes[mesStr] = { ingresos: 0, gastos: 0 };
                 if (t.amount > 0) resumenPorMes[mesStr].ingresos += t.amount;
@@ -1043,7 +1083,7 @@
                     if (t.amount < 0) {
                         const val = Math.abs(t.amount);
                         gastosMes += val;
-                        let cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
+                        const cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
                         gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
                     }
                 }
@@ -1088,7 +1128,7 @@
                 seccionDetalle.style.display = 'block';
                 tbodyDetalle.innerHTML = '';
 
-                let txsCuenta = datosApp.transacciones.filter(t => (t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1')) === cuentaSeleccionadaId);
+                const txsCuenta = datosApp.transacciones.filter(t => (t.cuentaId || (datosApp.cuentas[0] ? datosApp.cuentas[0].id : '1')) === cuentaSeleccionadaId);
                 txsCuenta.sort((a, b) => new Date(normalizarFechaIso(a.date)) - new Date(normalizarFechaIso(b.date)));
 
                 if (txsCuenta.length === 0) {
@@ -1116,7 +1156,7 @@
                 seccionDetalle.style.display = 'none';
             }
 
-            // Renderizar Resumen Histórico Mensual
+            // Renderizar Tabla de Resumen Histórico Mensual
             const tbodyResumen = document.getElementById('tablaResumenMensual');
             tbodyResumen.innerHTML = '';
             const mesesOrdenados = Object.keys(resumenPorMes).sort().reverse();
@@ -1165,7 +1205,7 @@
             }
 
             // Tabla transacciones
-            let txsMes = datosApp.transacciones.filter(t => normalizarFechaIso(t.date).startsWith(mesSeleccionado));
+            const txsMes = datosApp.transacciones.filter(t => normalizarFechaIso(t.date).startsWith(mesSeleccionado));
             const criterio = document.getElementById('criterioOrden').value;
             txsMes.sort((a, b) => {
                 if (criterio === 'fecha') return new Date(normalizarFechaIso(b.date)) - new Date(normalizarFechaIso(a.date));
@@ -1202,6 +1242,7 @@
         }
 
         function renderizarGraficoTorta(gastosCat, totalGastosMes) {
+            if (document.getElementById('vistaDashboard')?.style.display === 'none') return;
             const canvasEl = document.getElementById('graficoTorta');
             if (!canvasEl) return;
             const ctx = canvasEl.getContext('2d');
@@ -1228,7 +1269,7 @@
                     let titulo = "Total Gastos", monto = "$" + totalGastosMes.toLocaleString(), pct = "100%";
                     if (categoriaSeleccionadaGrafico && gastosCat[categoriaSeleccionadaGrafico] !== undefined) {
                         titulo = categoriaSeleccionadaGrafico;
-                        let val = gastosCat[categoriaSeleccionadaGrafico];
+                        const val = gastosCat[categoriaSeleccionadaGrafico];
                         monto = "$" + val.toLocaleString();
                         pct = ((val / totalGastosMes) * 100).toFixed(1) + '%';
                     }
