@@ -714,24 +714,28 @@
 
             const cOrigen = datosApp.cuentas.find(c => c.id === origenId);
             const fechaActual = new Date().toISOString().slice(0, 10);
+            const esTransferenciaInterna = destinoId !== 'retiro';
+            const now = Date.now();
 
             datosApp.transacciones.push({
-                uuid: 'tx-tr-out-' + Date.now(),
+                uuid: 'tx-tr-out-' + now,
                 date: fechaActual,
                 amount: -monto,
                 category: ['Transferencias', 'Salida'],
                 cuentaId: origenId,
-                title: destinoId === 'retiro' ? `Retiro de ${cOrigen.nombre}` : `Transferencia salida`
+                title: esTransferenciaInterna ? `Transferencia salida` : `Retiro de ${cOrigen?.nombre || 'Cuenta'}`,
+                esTransferenciaInterna
             });
 
-            if (destinoId !== 'retiro') {
+            if (esTransferenciaInterna) {
                 datosApp.transacciones.push({
-                    uuid: 'tx-tr-in-' + Date.now(),
+                    uuid: 'tx-tr-in-' + now,
                     date: fechaActual,
                     amount: monto,
                     category: ['Transferencias', 'Entrada'],
                     cuentaId: destinoId,
-                    title: `Transferencia entrada`
+                    title: `Transferencia entrada`,
+                    esTransferenciaInterna: true
                 });
             }
             document.getElementById('montoTransferencia').value = '';
@@ -1045,6 +1049,44 @@
             return dateStr;
         }
 
+        function esTransferenciaEntreCuentas(tx, todasTransacciones = datosApp.transacciones) {
+            if (!tx || tx.amount >= 0) return false;
+            if (typeof tx.esTransferenciaInterna === 'boolean') {
+                return tx.esTransferenciaInterna;
+            }
+
+            const catPrin = (Array.isArray(tx.category) ? tx.category[0] : (tx.category || '')).toLowerCase();
+            const subCat = (Array.isArray(tx.category) ? (tx.category[1] || '') : '').toLowerCase();
+            const uuid = String(tx.uuid || tx.id || '');
+            const titulo = String(tx.title || '').trim().toLowerCase();
+            const esSalidaTransferencia =
+                uuid.startsWith('tx-tr-out-') ||
+                (catPrin === 'transferencias' && (!subCat || subCat === 'salida'));
+
+            if (!esSalidaTransferencia) return false;
+            if (titulo === 'transferencia salida') return true;
+
+            const fechaTx = normalizarFechaIso(tx.date);
+            const montoAbs = Math.abs(tx.amount);
+            return todasTransacciones.some(otro => {
+                if (!otro || otro === tx || otro.amount !== montoAbs) return false;
+                if (normalizarFechaIso(otro.date) !== fechaTx) return false;
+                if (otro.cuentaId && tx.cuentaId && otro.cuentaId === tx.cuentaId) return false;
+
+                const otroUuid = String(otro.uuid || otro.id || '');
+                const otroCatPrin = (Array.isArray(otro.category) ? otro.category[0] : (otro.category || '')).toLowerCase();
+                const otroSubCat = (Array.isArray(otro.category) ? (otro.category[1] || '') : '').toLowerCase();
+                const otroTitulo = String(otro.title || '').trim().toLowerCase();
+
+                return (
+                    otro.esTransferenciaInterna === true ||
+                    otroUuid.startsWith('tx-tr-in-') ||
+                    (otroCatPrin === 'transferencias' && otroSubCat === 'entrada') ||
+                    otroTitulo === 'transferencia entrada'
+                );
+            });
+        }
+
         // --- RENDERIZADO Y GRÁFICO ---
         function renderizarTodo() {
             actualizarSelectCategorias();
@@ -1062,8 +1104,9 @@
             const saldosCuentas = {};
             datosApp.cuentas.forEach(c => saldosCuentas[c.id] = 0);
 
-            let ingresosMes = 0, gastosMes = 0;
+            let ingresosMes = 0, gastosMes = 0, totalGastosGrafico = 0;
             const gastosPorCategoriaMes = {};
+            const gastosGraficoPorCategoria = {};
             const resumenPorMes = {};
 
             datosApp.transacciones.forEach(t => {
@@ -1085,6 +1128,11 @@
                         gastosMes += val;
                         const cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
                         gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
+
+                        if (!esTransferenciaEntreCuentas(t)) {
+                            totalGastosGrafico += val;
+                            gastosGraficoPorCategoria[cat] = (gastosGraficoPorCategoria[cat] || 0) + val;
+                        }
                     }
                 }
             });
@@ -1238,7 +1286,7 @@
                 });
             }
 
-            renderizarGraficoTorta(gastosPorCategoriaMes, gastosMes);
+            renderizarGraficoTorta(gastosGraficoPorCategoria, totalGastosGrafico);
         }
 
         function renderizarGraficoTorta(gastosCat, totalGastosMes) {
