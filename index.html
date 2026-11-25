@@ -1050,7 +1050,7 @@
         }
 
         function esTransferenciaEntreCuentas(tx, todasTransacciones = datosApp.transacciones) {
-            if (!tx || tx.amount >= 0) return false;
+            if (!tx || !tx.amount) return false;
             if (typeof tx.esTransferenciaInterna === 'boolean') {
                 return tx.esTransferenciaInterna;
             }
@@ -1059,6 +1059,15 @@
             const subCat = (Array.isArray(tx.category) ? (tx.category[1] || '') : '').toLowerCase();
             const uuid = String(tx.uuid || tx.id || '');
             const titulo = String(tx.title || '').trim().toLowerCase();
+
+            if (tx.amount > 0) {
+                return (
+                    uuid.startsWith('tx-tr-in-') ||
+                    (catPrin === 'transferencias' && (!subCat || subCat === 'entrada')) ||
+                    titulo === 'transferencia entrada'
+                );
+            }
+
             const esSalidaTransferencia =
                 uuid.startsWith('tx-tr-out-') ||
                 (catPrin === 'transferencias' && (!subCat || subCat === 'salida'));
@@ -1104,9 +1113,8 @@
             const saldosCuentas = {};
             datosApp.cuentas.forEach(c => saldosCuentas[c.id] = 0);
 
-            let ingresosMes = 0, gastosMes = 0, totalGastosGrafico = 0;
+            let ingresosMes = 0, gastosMes = 0;
             const gastosPorCategoriaMes = {};
-            const gastosGraficoPorCategoria = {};
             const resumenPorMes = {};
 
             datosApp.transacciones.forEach(t => {
@@ -1116,22 +1124,20 @@
 
                 const fechaIso = normalizarFechaIso(t.date);
                 const mesStr = fechaIso.slice(0, 7);
+                const esTransfInterna = esTransferenciaEntreCuentas(t);
 
-                if (!resumenPorMes[mesStr]) resumenPorMes[mesStr] = { ingresos: 0, gastos: 0 };
-                if (t.amount > 0) resumenPorMes[mesStr].ingresos += t.amount;
-                if (t.amount < 0) resumenPorMes[mesStr].gastos += Math.abs(t.amount);
+                if (!esTransfInterna) {
+                    if (!resumenPorMes[mesStr]) resumenPorMes[mesStr] = { ingresos: 0, gastos: 0 };
+                    if (t.amount > 0) resumenPorMes[mesStr].ingresos += t.amount;
+                    if (t.amount < 0) resumenPorMes[mesStr].gastos += Math.abs(t.amount);
 
-                if (mesStr === mesSeleccionado) {
-                    if (t.amount > 0) ingresosMes += t.amount;
-                    if (t.amount < 0) {
-                        const val = Math.abs(t.amount);
-                        gastosMes += val;
-                        const cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
-                        gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
-
-                        if (!esTransferenciaEntreCuentas(t)) {
-                            totalGastosGrafico += val;
-                            gastosGraficoPorCategoria[cat] = (gastosGraficoPorCategoria[cat] || 0) + val;
+                    if (mesStr === mesSeleccionado) {
+                        if (t.amount > 0) ingresosMes += t.amount;
+                        if (t.amount < 0) {
+                            const val = Math.abs(t.amount);
+                            gastosMes += val;
+                            const cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
+                            gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
                         }
                     }
                 }
@@ -1286,7 +1292,7 @@
                 });
             }
 
-            renderizarGraficoTorta(gastosGraficoPorCategoria, totalGastosGrafico);
+            renderizarGraficoTorta(gastosPorCategoriaMes, gastosMes);
         }
 
         function renderizarGraficoTorta(gastosCat, totalGastosMes) {
