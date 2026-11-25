@@ -119,7 +119,8 @@
                         </h2>
                         <button onclick="cambiarVista('categorias')" class="text-xs text-emerald-400 hover:underline">Gestionar &rarr;</button>
                     </div>
-                    <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-56 overflow-y-auto pr-1 divide-y divide-slate-800/60">
+                    <p class="text-[11px] text-slate-400 italic">Haz clic en cualquier categoría para ver sus gastos con fechas y montos:</p>
+                    <div id="listaResumenCategorias" class="space-y-2 flex-grow max-h-80 overflow-y-auto pr-1">
                         <!-- Dinámico -->
                     </div>
                 </div>
@@ -305,7 +306,7 @@
                         <h2 class="text-lg font-bold text-white flex items-center gap-2">
                             <i class="fa-solid fa-tags text-emerald-400"></i> Administración de Categorías y Subcategorías
                         </h2>
-                        <p class="text-xs text-slate-400">Crea, edita o elimina categorías principales y sus respectivas subcategorías.</p>
+                        <p class="text-xs text-slate-400">Crea, edita o elimina categorías principales y sus respectivas subcategorías. Haz clic en una categoría para ver sus movimientos del mes.</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <select id="selectorTipoCatAdmin" onchange="renderizarGestionCategorias()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white outline-none">
@@ -455,8 +456,19 @@
 
         let chartInstance = null;
         let categoriaSeleccionadaGrafico = null;
+        let categoriaAdminSeleccionada = null;
+        let scrollCategoriaResumenPendiente = false;
         let timeoutSync = null;
         let cuentaSeleccionadaId = null;
+
+        function escaparHtml(valor) {
+            return String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         const configCategorias = {
             "Salud": { icon: "fa-kit-medical", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
@@ -693,6 +705,17 @@
             document.getElementById('seccionDetalleCuenta').style.display = 'none';
         };
 
+        window.seleccionarCategoriaResumen = function(cat) {
+            categoriaSeleccionadaGrafico = categoriaSeleccionadaGrafico === cat ? null : cat;
+            renderizarTodo();
+        };
+
+        window.toggleCategoriaAdminDetalle = function(tipo, catPrin) {
+            const clave = `${tipo}::${catPrin}`;
+            categoriaAdminSeleccionada = categoriaAdminSeleccionada === clave ? null : clave;
+            renderizarGestionCategorias();
+        };
+
         window.abrirModalTransferencia = function() {
             const origen = document.getElementById('cuentaOrigen');
             const destino = document.getElementById('cuentaDestino');
@@ -746,6 +769,7 @@
         // --- GESTIÓN Y RENDERIZADO DE LA PESTAÑA CATEGORÍAS ---
         window.renderizarGestionCategorias = function() {
             const tipo = document.getElementById('selectorTipoCatAdmin').value;
+            const mesSeleccionado = document.getElementById('filtroMes')?.value || '';
             const container = document.getElementById('contenedorAdminCategorias');
             container.innerHTML = '';
 
@@ -759,12 +783,27 @@
 
             keys.forEach(catPrin => {
                 const subs = cats[catPrin] || [];
+                const claveAdmin = `${tipo}::${catPrin}`;
+                const estaExpandida = categoriaAdminSeleccionada === claveAdmin;
+                const txsCat = datosApp.transacciones
+                    .filter(t => {
+                        if (esTransferenciaEntreCuentas(t)) return false;
+                        const fechaIso = normalizarFechaIso(t.date);
+                        if (mesSeleccionado && !fechaIso.startsWith(mesSeleccionado)) return false;
+                        const coincideTipo = tipo === 'gasto' ? t.amount < 0 : t.amount > 0;
+                        const tCat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
+                        return coincideTipo && tCat === catPrin;
+                    })
+                    .sort((a, b) => new Date(normalizarFechaIso(b.date)) - new Date(normalizarFechaIso(a.date)));
+                const totalCat = txsCat.reduce((acc, t) => acc + Math.abs(t.amount), 0);
+                const esGasto = tipo === 'gasto';
+
                 const card = document.createElement('div');
-                card.className = "bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3";
+                card.className = `bg-slate-950 border rounded-xl p-4 space-y-3 transition ${estaExpandida ? 'border-emerald-500/50' : 'border-slate-800'}`;
                 
                 const subsHtml = subs.map((sub, idx) => `
                     <div class="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg text-xs">
-                        <span class="text-slate-300"><i class="fa-solid fa-angle-right text-emerald-400 mr-2"></i>${sub}</span>
+                        <span class="text-slate-300"><i class="fa-solid fa-angle-right text-emerald-400 mr-2"></i>${escaparHtml(sub)}</span>
                         <div class="flex gap-2">
                             <button onclick="editarSubcategoriaPrompt('${tipo}', '${catPrin}', ${idx})" class="text-slate-400 hover:text-emerald-400" title="Editar subcategoría">
                                 <i class="fa-solid fa-pen"></i>
@@ -776,11 +815,57 @@
                     </div>
                 `).join('');
 
+                const filasTxsHtml = txsCat.length === 0
+                    ? `<tr><td colspan="3" class="p-3 text-center text-slate-500 italic text-xs">Sin ${esGasto ? 'gastos' : 'ingresos'} en ${escaparHtml(mesSeleccionado || 'este mes')}.</td></tr>`
+                    : txsCat.map(t => {
+                        const subTx = Array.isArray(t.category) && t.category[1] ? t.category[1] : '';
+                        return `
+                            <tr class="hover:bg-slate-900/60">
+                                <td class="p-2 text-slate-400 whitespace-nowrap">${escaparHtml(t.date || normalizarFechaIso(t.date))}</td>
+                                <td class="p-2 text-slate-200">
+                                    <span class="font-medium">${escaparHtml(t.title || (esGasto ? 'Gasto' : 'Ingreso'))}</span>
+                                    ${subTx ? `<span class="ml-1.5 text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">${escaparHtml(subTx)}</span>` : ''}
+                                </td>
+                                <td class="p-2 text-right font-bold whitespace-nowrap ${esGasto ? 'text-rose-400' : 'text-emerald-400'}">${esGasto ? '-' : '+'}$${Math.abs(t.amount).toLocaleString()}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                const detalleHtml = estaExpandida ? `
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden">
+                        <div class="flex justify-between items-center px-3 py-2 bg-slate-900 border-b border-slate-800 text-xs">
+                            <span class="text-slate-300 font-medium">
+                                ${esGasto ? 'Gastos' : 'Ingresos'} en <span class="text-emerald-400">${escaparHtml(mesSeleccionado)}</span> (${txsCat.length})
+                            </span>
+                            <span class="font-bold ${esGasto ? 'text-rose-400' : 'text-emerald-400'}">${esGasto ? '-' : '+'}$${totalCat.toLocaleString()} CLP</span>
+                        </div>
+                        <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-950/80 text-slate-400 uppercase border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th class="p-2">Fecha</th>
+                                        <th class="p-2">Descripción</th>
+                                        <th class="p-2 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50">
+                                    ${filasTxsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : '';
+
                 card.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
-                        <span class="font-bold text-white text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-tag text-emerald-400"></i> ${catPrin}
-                        </span>
+                    <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800/80 pb-2">
+                        <button type="button" class="btn-toggle-cat-admin font-bold text-white hover:text-emerald-400 transition text-sm flex items-center gap-2 cursor-pointer text-left">
+                            <i class="fa-solid fa-tag text-emerald-400"></i>
+                            <span>${escaparHtml(catPrin)}</span>
+                            <span class="text-[11px] font-normal text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800">
+                                ${txsCat.length} ${txsCat.length === 1 ? (esGasto ? 'gasto' : 'ingreso') : (esGasto ? 'gastos' : 'ingresos')}${totalCat > 0 ? ` · ${esGasto ? '-' : '+'}$${totalCat.toLocaleString()}` : ''}
+                            </span>
+                            <i class="fa-solid ${estaExpandida ? 'fa-chevron-up text-emerald-400' : 'fa-chevron-down text-slate-500'} text-xs"></i>
+                        </button>
                         <div class="flex items-center gap-2">
                             <button onclick="agregarSubcategoriaPrompt('${tipo}', '${catPrin}')" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2.5 py-1 rounded-lg border border-slate-700">
                                 + Subcategoría
@@ -793,10 +878,15 @@
                             </button>
                         </div>
                     </div>
+                    ${detalleHtml}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                         ${subsHtml || '<span class="text-xs text-slate-500 italic">Sin subcategorías</span>'}
                     </div>
                 `;
+                const btnToggle = card.querySelector('.btn-toggle-cat-admin');
+                if (btnToggle) {
+                    btnToggle.onclick = () => toggleCategoriaAdminDetalle(tipo, catPrin);
+                }
                 container.appendChild(card);
             });
         };
@@ -1098,6 +1188,9 @@
 
         // --- RENDERIZADO Y GRÁFICO ---
         function renderizarTodo() {
+            if (document.getElementById('vistaCategorias')?.style.display !== 'none') {
+                renderizarGestionCategorias();
+            }
             actualizarSelectCategorias();
             const mesSeleccionado = document.getElementById('filtroMes').value;
             const labelMesActivo = document.getElementById('labelMesActivo');
@@ -1115,6 +1208,7 @@
 
             let ingresosMes = 0, gastosMes = 0;
             const gastosPorCategoriaMes = {};
+            const transaccionesPorCategoriaMes = {};
             const resumenPorMes = {};
 
             datosApp.transacciones.forEach(t => {
@@ -1138,10 +1232,16 @@
                             gastosMes += val;
                             const cat = Array.isArray(t.category) ? t.category[0] : (t.category || 'General');
                             gastosPorCategoriaMes[cat] = (gastosPorCategoriaMes[cat] || 0) + val;
+                            if (!transaccionesPorCategoriaMes[cat]) transaccionesPorCategoriaMes[cat] = [];
+                            transaccionesPorCategoriaMes[cat].push(t);
                         }
                     }
                 }
             });
+
+            if (categoriaSeleccionadaGrafico && !gastosPorCategoriaMes[categoriaSeleccionadaGrafico]) {
+                categoriaSeleccionadaGrafico = null;
+            }
 
             // Renderizar Cuentas
             datosApp.cuentas.forEach(c => {
@@ -1241,21 +1341,80 @@
             if (catOrdenadas.length === 0) {
                 listaResumenDiv.innerHTML = '<div class="p-3 text-center text-slate-500 italic text-xs">Sin gastos este mes.</div>';
             } else {
+                let itemActivoEl = null;
                 catOrdenadas.forEach(([cat, monto]) => {
                     const cfg = obtenerConfigCategoria(cat);
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center py-2 px-1 text-xs";
-                    item.innerHTML = `
-                        <span class="font-medium text-slate-200 flex items-center gap-2.5">
-                            <span class="w-6 h-6 rounded-lg flex items-center justify-center border ${cfg.color}">
+                    const txsCat = [...(transaccionesPorCategoriaMes[cat] || [])].sort(
+                        (a, b) => new Date(normalizarFechaIso(b.date)) - new Date(normalizarFechaIso(a.date))
+                    );
+                    const esActiva = categoriaSeleccionadaGrafico === cat;
+
+                    const contenedor = document.createElement('div');
+                    contenedor.className = "space-y-1.5";
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `w-full flex justify-between items-center px-3 py-2.5 rounded-xl border text-xs cursor-pointer transition text-left ${esActiva ? 'bg-emerald-950/40 border-emerald-500/50 text-white shadow-md' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}`;
+                    btn.innerHTML = `
+                        <span class="font-medium flex items-center gap-2.5 min-w-0">
+                            <span class="w-6 h-6 rounded-lg flex items-center justify-center border shrink-0 ${cfg.color}">
                                 <i class="fa-solid ${cfg.icon} text-[11px]"></i>
                             </span>
-                            ${cat}
+                            <span class="truncate">${escaparHtml(cat)}</span>
+                            <span class="text-[10px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded-md shrink-0">${txsCat.length}</span>
                         </span>
-                        <span class="font-bold text-rose-400">-$${monto.toLocaleString()}</span>
+                        <span class="flex items-center gap-2 shrink-0 ml-2">
+                            <span class="font-bold text-rose-400">-$${monto.toLocaleString()}</span>
+                            <i class="fa-solid ${esActiva ? 'fa-chevron-up text-emerald-400' : 'fa-chevron-down text-slate-500'} text-[10px]"></i>
+                        </span>
                     `;
-                    listaResumenDiv.appendChild(item);
+                    btn.onclick = () => seleccionarCategoriaResumen(cat);
+                    contenedor.appendChild(btn);
+
+                    if (esActiva) {
+                        itemActivoEl = contenedor;
+                        const detalle = document.createElement('div');
+                        detalle.className = "ml-2 border-l-2 border-emerald-500/40 bg-slate-950/80 rounded-r-xl overflow-hidden border border-slate-800/80";
+                        const filasHtml = txsCat.map(t => {
+                            const subCat = Array.isArray(t.category) && t.category[1] ? t.category[1] : '';
+                            const fechaMostrar = t.date || normalizarFechaIso(t.date);
+                            const tituloMostrar = t.title || 'Gasto';
+                            return `
+                                <tr class="hover:bg-slate-900/60">
+                                    <td class="py-1.5 px-2.5 text-slate-400 whitespace-nowrap">${escaparHtml(fechaMostrar)}</td>
+                                    <td class="py-1.5 px-2 text-slate-200">
+                                        <div class="font-medium leading-tight">${escaparHtml(tituloMostrar)}</div>
+                                        ${subCat ? `<div class="text-[10px] text-slate-500 leading-tight">${escaparHtml(subCat)}</div>` : ''}
+                                    </td>
+                                    <td class="py-1.5 px-2.5 text-right font-bold text-rose-400 whitespace-nowrap">-$${Math.abs(t.amount).toLocaleString()}</td>
+                                </tr>
+                            `;
+                        }).join('');
+
+                        detalle.innerHTML = `
+                            <table class="w-full text-left text-[11px]">
+                                <thead class="bg-slate-900/80 text-slate-400 uppercase border-b border-slate-800/80">
+                                    <tr>
+                                        <th class="py-1.5 px-2.5 font-medium">Fecha</th>
+                                        <th class="py-1.5 px-2 font-medium">Gasto</th>
+                                        <th class="py-1.5 px-2.5 text-right font-medium">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/50">
+                                    ${filasHtml}
+                                </tbody>
+                            </table>
+                        `;
+                        contenedor.appendChild(detalle);
+                    }
+
+                    listaResumenDiv.appendChild(contenedor);
                 });
+
+                if (scrollCategoriaResumenPendiente && itemActivoEl) {
+                    itemActivoEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+                scrollCategoriaResumenPendiente = false;
             }
 
             // Tabla transacciones
@@ -1294,6 +1453,7 @@
 
             renderizarGraficoTorta(gastosPorCategoriaMes, gastosMes);
         }
+        window.renderizarTodo = renderizarTodo;
 
         function renderizarGraficoTorta(gastosCat, totalGastosMes) {
             if (document.getElementById('vistaDashboard')?.style.display === 'none') return;
@@ -1346,7 +1506,9 @@
                     plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10, font: { size: 9 } } } },
                     onClick: (e, elements) => {
                         if (elements.length > 0) {
-                            categoriaSeleccionadaGrafico = labels[elements[0].index];
+                            const catClick = labels[elements[0].index];
+                            categoriaSeleccionadaGrafico = categoriaSeleccionadaGrafico === catClick ? null : catClick;
+                            scrollCategoriaResumenPendiente = Boolean(categoriaSeleccionadaGrafico);
                             renderizarTodo();
                         } else {
                             categoriaSeleccionadaGrafico = null;
